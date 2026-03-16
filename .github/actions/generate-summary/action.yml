@@ -1,0 +1,46 @@
+name: 'Generate Job Summary'
+description: 'Centralized action to generate markdown summaries for build artifacts'
+
+inputs:
+  title:
+    description: 'The title of the summary section'
+    required: true
+  metric_name:
+    description: 'The label for the file size metric'
+    required: true
+  file_path:
+    description: 'The path to the artifact file'
+    required: true
+  platform:
+    description: 'The platform name'
+    required: true
+  build_id:
+    description: 'The unique build identifier'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Append to Summary
+      shell: bash
+      env:
+        TITLE: ${{ inputs.title }}
+        METRIC: ${{ inputs.metric_name }}
+        FILE: ${{ inputs.file_path }}
+        PLATFORM: ${{ inputs.platform }}
+        BUILD_ID: ${{ inputs.build_id }}
+      run: |
+        echo "## $TITLE" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f "$FILE" ]; then
+          SIZE=$(du -h "$FILE" | cut -f1)
+          echo "| $METRIC | $SIZE |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Status | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "| Platform | $PLATFORM |" >> $GITHUB_STEP_SUMMARY
+        echo "| Build ID | $BUILD_ID |" >> $GITHUB_STEP_SUMMARY

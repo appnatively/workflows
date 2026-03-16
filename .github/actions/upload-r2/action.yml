@@ -1,0 +1,23 @@
+name: 'Upload to Cloudflare R2'
+description: 'Centralized action to upload build artifacts to Cloudflare R2'
+
+inputs:
+  source:
+    description: 'The file or directory to upload'
+    required: true
+  destination:
+    description: 'The destination path in the R2 bucket'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Upload to R2
+      uses: ryand56/r2-upload-action@89218d6e382024db16e45f956d3532f8114f6b5b # v1.4.2
+      with:
+        account-id: ${{ secrets.R2_ACCOUNT_ID }}
+        access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+        secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        bucket: ${{ secrets.R2_BUCKET }}
+        source: ${{ inputs.source }}
+        destination: ${{ inputs.destination }}

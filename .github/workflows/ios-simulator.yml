@@ -1,0 +1,75 @@
+name: iOS Simulator Build
+
+on:
+  workflow_call:
+    inputs:
+      build_id:
+        required: true
+        type: string
+      node_version:
+        required: false
+        type: string
+        default: '20'
+      ruby_version:
+        required: false
+        type: string
+        default: '3.3'
+
+
+jobs:
+  build-ios-simulator:
+    runs-on: macos-latest
+    env:
+      NODE_OPTIONS: "--max-old-space-size=4096"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-mobile
+        with:
+          ios: true
+          node_version: ${{ inputs.node_version }}
+          ruby_version: ${{ inputs.ruby_version }}
+
+
+      - name: Build for Simulator
+        run: |
+          xcodebuild build \
+            -workspace app.xcworkspace \
+            -scheme app \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation)' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER=""
+        working-directory: app/ios
+
+      - name: Zip Simulator App
+        run: |
+          # Find the .app bundle in DerivedData
+          APP_PATH=$(find build/Build/Products/Release-iphonesimulator -name "*.app" -type d -maxdepth 1)
+          echo "Found app at: $APP_PATH"
+          zip -r ../../app-ios-simulator.zip "$APP_PATH"
+        working-directory: app/ios
+
+      - name: Generate Job Summary
+        if: always()
+        uses: ./.github/actions/generate-summary
+        with:
+          title: '🤖 iOS Simulator Build Summary'
+          metric_name: 'App Size'
+          file_path: 'app-ios-simulator.zip'
+          platform: 'iOS Simulator'
+          build_id: ${{ inputs.build_id }}
+
+      - name: Upload to Cloudflare R2
+        uses: ./.github/actions/upload-r2
+        with:
+          source: app-ios-simulator.zip
+          destination: builds/${{ inputs.build_id }}/app-ios-simulator.zip
+

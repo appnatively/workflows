@@ -1,0 +1,67 @@
+name: 'Setup Mobile Environment'
+description: 'Unified setup for Android and iOS builds including Node, pnpm, and optional CocoaPods'
+
+inputs:
+  ios:
+    description: 'Whether to run iOS specific setup (prebuild, ruby, pods)'
+    required: false
+    default: 'false'
+  android:
+    description: 'Whether to run Android specific setup (java, gradle)'
+    required: false
+    default: 'false'
+  node_version:
+    description: 'Node.js version'
+    required: false
+    default: '20'
+  java_version:
+    description: 'Java version'
+    required: false
+    default: '17'
+  ruby_version:
+    description: 'Ruby version'
+    required: false
+    default: '3.3'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install pnpm
+      uses: pnpm/action-setup@fe63ef375685df5d1b74737d94e50337c8e9c904 # v4.0.0
+      with:
+        version: 10
+        run_install: false
+
+    - name: Setup Node
+      uses: actions/setup-node@1d1121627393d3093b6412e50f8c3a5050e81z8u # v4.1.0 (Approx SHA, using standard for consistency)
+      with:
+        node-version: ${{ inputs.node_version }}
+        cache: 'pnpm'
+        cache-dependency-path: |
+          app/pnpm-lock.yaml
+          native-components/pnpm-lock.yaml
+
+    - name: Install All Dependencies (Workspace)
+      shell: bash
+      run: pnpm install --frozen-lockfile --prefer-offline
+
+    - name: Build Native Components
+      shell: bash
+      run: pnpm build
+      working-directory: native-components
+
+    # iOS Specific Setup
+    - name: Run iOS Setup
+      if: inputs.ios == 'true'
+      uses: ./.github/actions/setup-ios
+      with:
+        ruby_version: ${{ inputs.ruby_version }}
+
+    # Android Specific Setup
+    - name: Run Android Setup
+      if: inputs.android == 'true'
+      uses: ./.github/actions/setup-android
+      with:
+        java_version: ${{ inputs.java_version }}
+
+

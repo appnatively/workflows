@@ -1,0 +1,62 @@
+name: Android Production APK
+
+on:
+  workflow_call:
+    inputs:
+      build_id:
+        required: true
+        type: string
+      node_version:
+        required: false
+        type: string
+        default: '20'
+      java_version:
+        required: false
+        type: string
+        default: '17'
+
+
+jobs:
+  build-android-release:
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: "--max-old-space-size=4096"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-mobile
+        with:
+          android: true
+          node_version: ${{ inputs.node_version }}
+          java_version: ${{ inputs.java_version }}
+
+
+      - name: Build Release APK (unsigned)
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease \
+            --max-workers 2 \
+            --build-cache \
+            --no-daemon \
+            -Dorg.gradle.jvmargs="-Xmx3072m -XX:MaxMetaspaceSize=512m" \
+            -Dorg.gradle.parallel=true
+        working-directory: app/android
+
+      - name: Generate Job Summary
+        if: always()
+        uses: ./.github/actions/generate-summary
+        with:
+          title: '📱 Build Summary'
+          metric_name: 'APK Size'
+          file_path: 'app/android/app/build/outputs/apk/release/app-release.apk'
+          platform: 'Android'
+          build_id: ${{ inputs.build_id }}
+
+      - name: Upload to Cloudflare R2
+        uses: ./.github/actions/upload-r2
+        with:
+          source: app/android/app/build/outputs/apk/release/app-release.apk
+          destination: builds/${{ inputs.build_id }}/app-release.apk

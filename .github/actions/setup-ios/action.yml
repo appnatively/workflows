@@ -1,0 +1,33 @@
+inputs:
+  ruby_version:
+    description: 'Ruby version'
+    required: false
+    default: '3.3'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Prebuild iOS
+      shell: bash
+      run: npx expo prebuild --platform ios --non-interactive
+      working-directory: app
+
+    - name: Cache Pods
+      uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+      with:
+        path: app/ios/Pods
+        key: ${{ runner.os }}-pods-${{ hashFiles('app/ios/Podfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pods-
+
+    - name: Setup Ruby
+      uses: ruby/setup-ruby@c409890cb549646b5a34e06253c063c89c898c8c # v1.206.0
+      with:
+        ruby-version: ${{ inputs.ruby_version }}
+        bundler-cache: true
+
+    - name: Install Pods
+      shell: bash
+      run: pod install
+      working-directory: app/ios
+

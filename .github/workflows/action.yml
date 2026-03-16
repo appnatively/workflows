@@ -1,0 +1,73 @@
+name: Build Mobile App
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      platform:
+        required: true
+        type: string
+        default: 'both'
+      android_type:
+        required: false
+        type: string
+        default: 'both'
+      ios_type:
+        required: false
+        type: string
+        default: 'both'
+      build_id:
+        required: true
+        type: string
+      node_version:
+        required: false
+        type: string
+        default: '24.11.1'
+      java_version:
+        required: false
+        type: string
+        default: '17'
+      ruby_version:
+        required: false
+        type: string
+        default: '3.3'
+
+
+jobs:
+  android-aab:
+    name: Android AAB
+    if: ${{ (inputs.platform == 'android' || inputs.platform == 'both') && (inputs.android_type == 'aab' || inputs.android_type == 'both') }}
+    uses: ./.github/workflows/android-aab.yml
+    with:
+      build_id: ${{ inputs.build_id }}
+      node_version: ${{ inputs.node_version }}
+      java_version: ${{ inputs.java_version }}
+
+  android-apk:
+    name: Android APK
+    if: ${{ (inputs.platform == 'android' || inputs.platform == 'both') && (inputs.android_type == 'apk' || inputs.android_type == 'both') }}
+    uses: ./.github/workflows/android-apk.yml
+    with:
+      build_id: ${{ inputs.build_id }}
+      node_version: ${{ inputs.node_version }}
+      java_version: ${{ inputs.java_version }}
+
+  ios-bundle:
+    name: iOS Bundle
+    if: ${{ (inputs.platform == 'ios' || inputs.platform == 'both') && (inputs.ios_type == 'bundle' || inputs.ios_type == 'both') }}
+    uses: ./.github/workflows/ios-bundle.yml
+    with:
+      build_id: ${{ inputs.build_id }}
+      node_version: ${{ inputs.node_version }}
+      ruby_version: ${{ inputs.ruby_version }}
+
+  ios-simulator:
+    name: iOS Simulator
+    if: ${{ (inputs.platform == 'ios' || inputs.platform == 'both') && (inputs.ios_type == 'simulator' || inputs.ios_type == 'both') }}
+    uses: ./.github/workflows/ios-simulator.yml
+    with:
+      build_id: ${{ inputs.build_id }}
+      node_version: ${{ inputs.node_version }}
+      ruby_version: ${{ inputs.ruby_version }}
