@@ -45,11 +45,6 @@ runs:
       shell: bash
       run: pnpm install --frozen-lockfile --prefer-offline
 
-    - name: Build Native Components
-      shell: bash
-      run: pnpm build
-      working-directory: native-components
-
     # iOS Specific Setup
     - name: Run iOS Setup
       if: inputs.ios == 'true'
