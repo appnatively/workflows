@@ -33,8 +33,20 @@ jobs:
           node_version: ${{ inputs.node_version }}
           java_version: ${{ inputs.java_version }}
 
+      # 📦 Verify bundle exists (optional but recommended)
+      - name: Verify Pre-built JS Bundle
+        run: |
+          if [ ! -f "app/android/app/src/main/assets/index.android.bundle" ]; then
+            echo "❌ Pre-built JS bundle not found at app/android/app/src/main/assets/index.android.bundle"
+            echo "Please ensure the bundle is included in the downloaded artifacts from R2"
+            exit 1
+          fi
+          echo "✅ Pre-built JS bundle found"
+          ls -la app/android/app/src/main/assets/
+        working-directory: app
 
-      - name: Build Release APK (unsigned)
+      # 🏗️ Build APK without re-bundling JavaScript
+      - name: Build Release APK (unsigned) - Using Pre-built Bundle
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease \
@@ -42,7 +54,9 @@ jobs:
             --build-cache \
             --no-daemon \
             -Dorg.gradle.jvmargs="-Xmx3072m -XX:MaxMetaspaceSize=512m" \
-            -Dorg.gradle.parallel=true
+            -Dorg.gradle.parallel=true \
+            -x createBundleReleaseJsAndAssets \
+            -x bundleReleaseJsAndAssets
         working-directory: app/android
 
       - name: Generate Job Summary
