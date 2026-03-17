@@ -41,7 +41,7 @@ jobs:
             -scheme app \
             -configuration Release \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,OS=latest' \
+            -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
             SKIP_BUNDLING=1 \
             CODE_SIGNING_ALLOWED=NO \
