@@ -17,7 +17,7 @@ runs:
         AWS_SECRET_ACCESS_KEY: '124cf51b3939eb6c17033865178b16fde3513c512905349d1a7bba75ce18e42a'
         R2_ACCOUNT_ID: 'd6ca3e18b3177c270d11a6b4ef6930c9'
         R2_BUCKET: 'appnatively-apps'
-        SOURCE_VERSION: '0.0.39'
+        SOURCE_VERSION: '0.0.40'
       run: |
         ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
         REMOTE_PATH="releases/${SOURCE_VERSION}/${{ inputs.file_name }}"
