@@ -34,6 +34,16 @@ jobs:
           ruby_version: ${{ inputs.ruby_version }}
 
 
+      - name: Validate Pre-bundled Assets
+        run: |
+          if [ ! -f "main.jsbundle" ]; then
+            echo "❌ Error: main.jsbundle not found in app/ios."
+            echo "The simulator build requires pre-bundled assets because source code is excluded."
+            exit 1
+          fi
+          echo "✅ main.jsbundle found."
+        working-directory: app/ios
+
       - name: Build for Simulator
         run: |
           xcodebuild build \
@@ -56,6 +66,24 @@ jobs:
           echo "### Build Error Trace 🚨" >> $GITHUB_STEP_SUMMARY
           tail -n 200 build.log >> $GITHUB_STEP_SUMMARY
           cat build.log | tail -n 200
+      - name: Ingest Pre-bundled Assets
+        run: |
+          # Find the .app bundle in DerivedData
+          APP_PATH=$(find build/Build/Products/Release-iphonesimulator -name "*.app" -type d -maxdepth 1)
+          echo "Found app at: $APP_PATH"
+          
+          # Ingest pre-bundled assets from the parent directory (copied from the release archive)
+          if [ -f "../ios/main.jsbundle" ]; then
+            echo "📦 Copying main.jsbundle to $APP_PATH"
+            cp "../ios/main.jsbundle" "$APP_PATH/"
+          else
+            echo "⚠️ Warning: main.jsbundle not found in app/ios"
+          fi
+          
+          if [ -d "../ios/assets" ]; then
+            echo "📦 Copying assets to $APP_PATH"
+            cp -r "../ios/assets" "$APP_PATH/"
+          fi
         working-directory: app/ios
 
       - name: Zip Simulator App
