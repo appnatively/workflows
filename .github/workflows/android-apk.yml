@@ -23,16 +23,11 @@ jobs:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
     steps:
-      - name: Checkout Actions
-        uses: actions/checkout@v6
-        with:
-          sparse-checkout: .github
-
       - name: Download from R2
-        uses: ./.github/actions/download-r2
+        uses: appnatively/workflows/.github/actions/download-r2@master
 
       - name: Setup Environment
-        uses: ./.github/actions/setup-mobile
+        uses: appnatively/workflows/.github/actions/setup-mobile@master
         with:
           android: true
           node_version: ${{ inputs.node_version }}
@@ -52,7 +47,7 @@ jobs:
 
       - name: Generate Job Summary
         if: always()
-        uses: ./.github/actions/generate-summary
+        uses: appnatively/workflows/.github/actions/generate-summary@master
         with:
           title: '📱 Build Summary'
           metric_name: 'APK Size'
@@ -61,7 +56,7 @@ jobs:
           build_id: ${{ inputs.build_id }}
 
       - name: Upload to Cloudflare R2
-        uses: ./.github/actions/upload-r2
+        uses: appnatively/workflows/.github/actions/upload-r2@master
         with:
           source: app/android/app/build/outputs/apk/release/app-release.apk
           destination: builds/${{ inputs.build_id }}/app-release.apk

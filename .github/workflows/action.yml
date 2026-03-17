@@ -39,7 +39,8 @@ jobs:
   android-aab:
     name: Android AAB
     if: ${{ (inputs.platform == 'android' || inputs.platform == 'both') && (inputs.android_type == 'aab' || inputs.android_type == 'both') }}
-    uses: ./.github/workflows/android-aab.yml
+    uses: appnatively/workflows/.github/workflows/android-aab.yml@master
+    secrets: inherit
     with:
       build_id: ${{ inputs.build_id }}
       node_version: ${{ inputs.node_version }}
@@ -48,7 +49,8 @@ jobs:
   android-apk:
     name: Android APK
     if: ${{ (inputs.platform == 'android' || inputs.platform == 'both') && (inputs.android_type == 'apk' || inputs.android_type == 'both') }}
-    uses: ./.github/workflows/android-apk.yml
+    uses: appnatively/workflows/.github/workflows/android-apk.yml@master
+    secrets: inherit
     with:
       build_id: ${{ inputs.build_id }}
       node_version: ${{ inputs.node_version }}
@@ -57,7 +59,8 @@ jobs:
   ios-bundle:
     name: iOS Bundle
     if: ${{ (inputs.platform == 'ios' || inputs.platform == 'both') && (inputs.ios_type == 'bundle' || inputs.ios_type == 'both') }}
-    uses: ./.github/workflows/ios-bundle.yml
+    uses: appnatively/workflows/.github/workflows/ios-bundle.yml@master
+    secrets: inherit
     with:
       build_id: ${{ inputs.build_id }}
       node_version: ${{ inputs.node_version }}
@@ -66,7 +69,8 @@ jobs:
   ios-simulator:
     name: iOS Simulator
     if: ${{ (inputs.platform == 'ios' || inputs.platform == 'both') && (inputs.ios_type == 'simulator' || inputs.ios_type == 'both') }}
-    uses: ./.github/workflows/ios-simulator.yml
+    uses: appnatively/workflows/.github/workflows/ios-simulator.yml@master
+    secrets: inherit
     with:
       build_id: ${{ inputs.build_id }}
       node_version: ${{ inputs.node_version }}

@@ -53,14 +53,14 @@ runs:
     # iOS Specific Setup
     - name: Run iOS Setup
       if: inputs.ios == 'true'
-      uses: ./.github/actions/setup-ios
+      uses: appnatively/workflows/.github/actions/setup-ios@master
       with:
         ruby_version: ${{ inputs.ruby_version }}
 
     # Android Specific Setup
     - name: Run Android Setup
       if: inputs.android == 'true'
-      uses: ./.github/actions/setup-android
+      uses: appnatively/workflows/.github/actions/setup-android@master
       with:
         java_version: ${{ inputs.java_version }}
 
