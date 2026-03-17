@@ -1,0 +1,37 @@
+name: 'Download from Cloudflare R2'
+description: 'Downloads a zip archive from Cloudflare R2 and extracts it into the workspace'
+
+inputs:
+  file_name:
+    description: 'The name of the zip file to download'
+    required: false
+    default: 'release-assets.zip'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download from R2
+      shell: bash
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        SOURCE_VERSION: ${{ secrets.SOURCE_VERSION }}
+      run: |
+        ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+        REMOTE_PATH="releases/${SOURCE_VERSION}/${{ inputs.file_name }}"
+        
+        echo "Downloading ${REMOTE_PATH} from R2..."
+        
+        aws s3 cp \
+          --endpoint-url ${ENDPOINT} \
+          s3://${R2_BUCKET}/${REMOTE_PATH} \
+          ${{ inputs.file_name }}
+
+    - name: Extract Archive
+      shell: bash
+      run: |
+        echo "Extracting ${{ inputs.file_name }}..."
+        unzip -o ${{ inputs.file_name }}
+        rm ${{ inputs.file_name }}

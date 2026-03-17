@@ -13,11 +13,11 @@ runs:
   using: "composite"
   steps:
     - name: Upload to R2
-      uses: ryand56/r2-upload-action@89218d6e382024db16e45f956d3532f8114f6b5b # v1.4.2
+      uses: ryand56/r2-upload-action@latest
       with:
-        account-id: ${{ secrets.R2_ACCOUNT_ID }}
-        access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
-        secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-        bucket: ${{ secrets.R2_BUCKET }}
-        source: ${{ inputs.source }}
-        destination: ${{ inputs.destination }}
+        r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
+        r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+        r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        r2-bucket: ${{ secrets.R2_BUCKET }}
+        source-dir: ${{ inputs.source }}
+        destination-dir: ${{ inputs.destination }}

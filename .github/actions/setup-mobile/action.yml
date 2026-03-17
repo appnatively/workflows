@@ -13,7 +13,7 @@ inputs:
   node_version:
     description: 'Node.js version'
     required: false
-    default: '20'
+    default: '24.11'
   java_version:
     description: 'Java version'
     required: false
@@ -33,7 +33,7 @@ runs:
         run_install: false
 
     - name: Setup Node
-      uses: actions/setup-node@1d1121627393d3093b6412e50f8c3a5050e81z8u # v4.1.0 (Approx SHA, using standard for consistency)
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node_version }}
         cache: 'pnpm'

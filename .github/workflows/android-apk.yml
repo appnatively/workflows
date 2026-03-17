@@ -9,7 +9,7 @@ on:
       node_version:
         required: false
         type: string
-        default: '20'
+        default: '24.11'
       java_version:
         required: false
         type: string
@@ -23,8 +23,8 @@ jobs:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Download from R2
+        uses: ./.github/actions/download-r2
 
       - name: Setup Environment
         uses: ./.github/actions/setup-mobile
