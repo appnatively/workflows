@@ -48,6 +48,32 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER=""
         working-directory: app/ios
 
+      - name: Inject Pre-built JS and Zip Archive
+        run: |
+          # 1. Find the .app bundle inside the generated xcarchive
+          APP_PATH=$(find build/app.xcarchive/Products/Applications -name "*.app" -type d -maxdepth 1)
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "❌ Could not find .app directory inside the archive!"
+            exit 1
+          fi
+          
+          echo "✅ Found app inside archive at: $APP_PATH"
+
+          # 2. Inject the pre-built JS bundle and assets directly into the .app
+          # (Ensure the paths to main.jsbundle and assets align with your download-r2 output)
+          echo "📦 Copying pre-built bundle and assets into .app..."
+          cp main.jsbundle "$APP_PATH/"
+          
+          if [ -d "assets" ]; then
+            cp -R assets "$APP_PATH/"
+          fi
+
+          # 3. Zip the completely assembled archive
+          echo "🗜️ Zipping iOS archive..."
+          zip -r ../../app-ios-archive.zip build/app.xcarchive
+        working-directory: app/ios
+
       - name: Zip Archive
         run: |
           zip -r ../../app-ios-archive.zip build/app.xcarchive
