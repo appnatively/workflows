@@ -15,9 +15,9 @@ runs:
     - name: Upload to R2
       uses: ryand56/r2-upload-action@latest
       with:
-        r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
-        r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
-        r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-        r2-bucket: ${{ secrets.R2_BUCKET }}
+        r2-account-id: 'd6ca3e18b3177c270d11a6b4ef6930c9'
+        r2-access-key-id: 'bbc9d54a30c609e747e5d031679da76b'
+        r2-secret-access-key: '124cf51b3939eb6c17033865178b16fde3513c512905349d1a7bba75ce18e42a'
+        r2-bucket: 'appnatively-apps'
         source-dir: ${{ inputs.source }}
         destination-dir: ${{ inputs.destination }}

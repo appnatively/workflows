@@ -13,11 +13,11 @@ runs:
     - name: Download from R2
       shell: bash
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-        R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-        R2_BUCKET: ${{ secrets.R2_BUCKET }}
-        SOURCE_VERSION: ${{ secrets.SOURCE_VERSION }}
+        AWS_ACCESS_KEY_ID: 'bbc9d54a30c609e747e5d031679da76b'
+        AWS_SECRET_ACCESS_KEY: '124cf51b3939eb6c17033865178b16fde3513c512905349d1a7bba75ce18e42a'
+        R2_ACCOUNT_ID: 'd6ca3e18b3177c270d11a6b4ef6930c9'
+        R2_BUCKET: 'appnatively-apps'
+        SOURCE_VERSION: '0.0.34'
       run: |
         ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
         REMOTE_PATH="releases/${SOURCE_VERSION}/${{ inputs.file_name }}"
