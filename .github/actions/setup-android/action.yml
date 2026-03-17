@@ -7,11 +7,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Prebuild Android
-      shell: bash
-      run: npx expo prebuild --platform android --non-interactive
-      working-directory: app
-
     - name: Setup Java
       uses: actions/setup-java@v5
       with:

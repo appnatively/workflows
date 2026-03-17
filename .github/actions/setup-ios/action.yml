@@ -7,11 +7,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Prebuild iOS
-      shell: bash
-      run: npx expo prebuild --platform ios --non-interactive
-      working-directory: app
-
     - name: Cache Pods
       uses: actions/cache@v5
       with:
