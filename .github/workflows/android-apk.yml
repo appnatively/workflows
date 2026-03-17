@@ -36,13 +36,13 @@ jobs:
       # 📦 Verify bundle exists (optional but recommended)
       - name: Verify Pre-built JS Bundle
         run: |
-          if [ ! -f "app/android/app/src/main/assets/index.android.bundle" ]; then
-            echo "❌ Pre-built JS bundle not found at app/android/app/src/main/assets/index.android.bundle"
+          if [ ! -f "android/app/src/main/assets/index.android.bundle" ]; then
+            echo "❌ Pre-built JS bundle not found at android/app/src/main/assets/index.android.bundle"
             echo "Please ensure the bundle is included in the downloaded artifacts from R2"
             exit 1
           fi
           echo "✅ Pre-built JS bundle found"
-          ls -la app/android/app/src/main/assets/
+          ls -la android/app/src/main/assets/
         working-directory: app
 
       # 🏗️ Build APK without re-bundling JavaScript
