@@ -23,7 +23,9 @@ runs:
 
     - name: Install Pods
       shell: bash
-      run: pod install
+      run: |
+        gem install xcpretty --no-document
+        pod install
       working-directory: app/ios
 
     - name: Verify Pods Folder
