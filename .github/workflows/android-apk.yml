@@ -38,6 +38,7 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease \
+            -x bundleReleaseJsAndAssets \
             --max-workers 2 \
             --build-cache \
             --no-daemon \

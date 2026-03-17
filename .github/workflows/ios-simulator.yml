@@ -41,8 +41,9 @@ jobs:
             -scheme app \
             -configuration Release \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation)' \
+            -destination 'platform=iOS Simulator,OS=latest' \
             -derivedDataPath build \
+            SKIP_BUNDLING=1 \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
