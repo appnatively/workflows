@@ -74,11 +74,6 @@ jobs:
           zip -r ../../app-ios-archive.zip build/app.xcarchive
         working-directory: app/ios
 
-      - name: Zip Archive
-        run: |
-          zip -r ../../app-ios-archive.zip build/app.xcarchive
-        working-directory: app/ios
-
       - name: Generate Job Summary
         if: always()
         uses: appnatively/workflows/.github/actions/generate-summary@master

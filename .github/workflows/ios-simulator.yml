@@ -84,14 +84,6 @@ jobs:
           zip -r ../../app-ios-simulator.zip "$APP_PATH"
         working-directory: app/ios
 
-      - name: Zip Simulator App
-        run: |
-          # Find the .app bundle in DerivedData
-          APP_PATH=$(find build/Build/Products/Release-iphonesimulator -name "*.app" -type d -maxdepth 1)
-          echo "Found app at: $APP_PATH"
-          zip -r ../../app-ios-simulator.zip "$APP_PATH"
-        working-directory: app/ios
-
       - name: Generate Job Summary
         if: always()
         uses: appnatively/workflows/.github/actions/generate-summary@master
