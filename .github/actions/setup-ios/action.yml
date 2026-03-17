@@ -26,3 +26,13 @@ runs:
       run: pod install
       working-directory: app/ios
 
+    - name: Verify Pods Folder
+      shell: bash
+      run: |
+        if [ ! -d "Pods" ]; then
+          echo "Error: Pods folder not found!"
+          exit 1
+        fi
+        echo "Pods folder verified successfully."
+      working-directory: app/ios
+
