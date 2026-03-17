@@ -23,6 +23,11 @@ jobs:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
     steps:
+      - name: Checkout Actions
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github
+
       - name: Download from R2
         uses: ./.github/actions/download-r2
 
