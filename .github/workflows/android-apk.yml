@@ -54,9 +54,7 @@ jobs:
             --build-cache \
             --no-daemon \
             -Dorg.gradle.jvmargs="-Xmx3072m -XX:MaxMetaspaceSize=512m" \
-            -Dorg.gradle.parallel=true \
-            -x createBundleReleaseJsAndAssets \
-            -x bundleReleaseJsAndAssets
+            -Dorg.gradle.parallel=true
         working-directory: app/android
 
       - name: Generate Job Summary
