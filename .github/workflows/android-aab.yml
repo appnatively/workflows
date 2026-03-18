@@ -59,6 +59,6 @@ jobs:
         uses: appnatively/workflows/.github/actions/upload-r2@master
         with:
           source: app/android/app/build/outputs/bundle/release/app-release.aab
-          destination: builds/${{ inputs.build_id }}/app-release.aab
+          destination: builds/${{ inputs.build_id }}/
 
 

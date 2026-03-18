@@ -71,4 +71,4 @@ jobs:
         uses: appnatively/workflows/.github/actions/upload-r2@master
         with:
           source: app/android/app/build/outputs/apk/release/app-release.apk
-          destination: builds/${{ inputs.build_id }}/app-release.apk
+          destination: builds/${{ inputs.build_id }}/
