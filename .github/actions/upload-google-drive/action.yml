@@ -24,52 +24,23 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Get Access Token
-      id: get_token
+    - name: Upload to Google Drive (JS)
       shell: bash
+      env:
+        CLIENT_ID: ${{ inputs.client_id }}
+        CLIENT_SECRET: ${{ inputs.client_secret }}
+        REFRESH_TOKEN: ${{ inputs.refresh_token }}
+        FOLDER_ID: ${{ inputs.folder_id }}
+        FILE_PATH: ${{ inputs.source }}
+        BUILD_ID: ${{ inputs.build_id }}
       run: |
-        RESPONSE=$(curl -s -X POST https://oauth2.googleapis.com/token \
-          -d client_id="${{ inputs.client_id }}" \
-          -d client_secret="${{ inputs.client_secret }}" \
-          -d refresh_token="${{ inputs.refresh_token }}" \
-          -d grant_type=refresh_token)
+        cd ${{ github.action_path }}
         
-        ACCESS_TOKEN=$(echo $RESPONSE | jq -r .access_token)
-        
-        if [ "$ACCESS_TOKEN" == "null" ] || [ -z "$ACCESS_TOKEN" ]; then
-          echo "❌ Failed to refresh Google Drive access token"
-          echo "Response: $RESPONSE"
-          exit 1
+        # Install dependencies if not already present
+        if [ ! -d "node_modules" ]; then
+          pnpm init > /dev/null
+          pnpm add googleapis > /dev/null
         fi
         
-        echo "token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
-
-    - name: Upload to Google Drive
-      shell: bash
-      run: |
-        FILENAME=$(basename "${{ inputs.source }}")
-        # Use build_id prefix to make files unique
-        UNIQUE_NAME="${{ inputs.build_id }}-$FILENAME"
-        FOLDER_ID="${{ inputs.folder_id }}"
-        
-        echo "📤 Uploading $UNIQUE_NAME to Google Drive folder $FOLDER_ID..."
-        
-        # Prepare metadata
-        METADATA="{\"name\": \"$UNIQUE_NAME\", \"parents\": [\"$FOLDER_ID\"]}"
-        
-        # Perform multipart upload
-        UPLOAD_RESPONSE=$(curl -s -X POST -L \
-          -H "Authorization: Bearer ${{ steps.get_token.outputs.token }}" \
-          -F "metadata=$METADATA;type=application/json;charset=UTF-8" \
-          -F "file=@${{ inputs.source }};type=application/octet-stream" \
-          "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart")
-        
-        FILE_ID=$(echo $UPLOAD_RESPONSE | jq -r .id)
-        
-        if [ "$FILE_ID" == "null" ] || [ -z "$FILE_ID" ]; then
-          echo "❌ Failed to upload to Google Drive"
-          echo "Response: $UPLOAD_RESPONSE"
-          exit 1
-        fi
-        
-        echo "✅ Successfully uploaded to Google Drive. File ID: $FILE_ID"
+        # Run the script
+        node upload.js
