@@ -30,16 +30,6 @@ async function upload() {
     const filePath = path.isAbsolute(rawFilePath) ? rawFilePath : path.resolve(workspacePath, rawFilePath);
     const fileName = path.basename(filePath);
 
-    // Debug logging (masked)
-    console.log('--- Environment Check ---');
-    console.log(`CLIENT_ID: ${GOOGLE_DRIVE_CLIENT_ID ? '✅ Set' : '❌ MISSING'}`);
-    console.log(`CLIENT_SECRET: ${GOOGLE_DRIVE_CLIENT_SECRET ? '✅ Set' : '❌ MISSING'}`);
-    console.log(`REFRESH_TOKEN: ${GOOGLE_DRIVE_REFRESH_TOKEN ? '✅ Set' : '❌ MISSING'}`);
-    console.log(`ACCESS_TOKEN: ${GOOGLE_DRIVE_ACCESS_TOKEN ? '✅ Set' : 'ℹ️ Not Provided (Refreshing...)'}`);
-    console.log(`FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID ? `✅ Set` : '❌ MISSING'}`);
-    console.log(`FILE_PATH: ${filePath ? '✅ Set' : '❌ MISSING'}`);
-    console.log('-------------------------');
-
     if (!GOOGLE_DRIVE_CLIENT_ID || !GOOGLE_DRIVE_CLIENT_SECRET || !GOOGLE_DRIVE_REFRESH_TOKEN || !GOOGLE_DRIVE_FOLDER_ID) {
       throw new Error('Required Google Drive credentials are missing in APPNATIVELY_SECRETS.');
     }
@@ -59,9 +49,6 @@ async function upload() {
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
     
     const buildId = process.env.BUILD_ID || 'manual';
-
-    // 3. Ensure folder structure: builds/{build_id}
-    console.log(`📂 Ensuring folder structure: builds/${buildId}...`);
     
     async function findOrCreateFolder(name, parentId) {
       const query = `name = '${name}' and mimeType = 'application/vnd.google-apps.folder' and '${parentId}' in parents and trashed = false`;
@@ -93,8 +80,6 @@ async function upload() {
     const targetFolderId = await findOrCreateFolder(buildId, buildsFolderId);
 
     // 4. Perform Upload
-    console.log(`📤 Uploading ${fileName} to Google Drive path: builds/${buildId}/${fileName}...`);
-
     const fileMetadata = {
       name: fileName,
       parents: [targetFolderId]
@@ -111,7 +96,17 @@ async function upload() {
       fields: 'id, name'
     });
 
-    console.log(`✅ Successfully uploaded to Google Drive. File ID: ${response.data.id}`);
+    const fileId = response.data.id;
+
+    // 5. Make file public (but folder remains private)
+    await drive.permissions.create({
+      fileId: fileId,
+      requestBody: {
+        role: 'reader',
+        type: 'anyone',
+      },
+    });
+
   } catch (error) {
     console.error('❌ Failed to upload to Google Drive:');
     if (error.response && error.response.data) {
