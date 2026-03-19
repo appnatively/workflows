@@ -25,6 +25,12 @@ jobs:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
     steps:
+      - name: Debug Secret in Child
+        run: |
+          echo "--- Secret Presence Check (Child) ---"
+          echo "APPNATIVELY_SECRETS: ${{ secrets.APPNATIVELY_SECRETS != '' && '✅ Set' || '❌ MISSING' }}"
+          echo "------------------------------------"
+
       - name: Create Test File
         run: echo "AppNatively Google Drive Upload Test - $(date)" > test.txt
 
