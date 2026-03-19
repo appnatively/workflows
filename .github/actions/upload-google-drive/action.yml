@@ -1,0 +1,58 @@
+name: 'Upload to Google Drive'
+description: 'Upload build artifacts to Google Drive using OAuth tokens'
+
+inputs:
+  source:
+    description: 'The file to upload'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get Access Token
+      id: get_token
+      shell: bash
+      run: |
+        RESPONSE=$(curl -s -X POST https://oauth2.googleapis.com/token \
+          -d client_id="${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}" \
+          -d client_secret="${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}" \
+          -d refresh_token="${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}" \
+          -d grant_type=refresh_token)
+        
+        ACCESS_TOKEN=$(echo $RESPONSE | jq -r .access_token)
+        
+        if [ "$ACCESS_TOKEN" == "null" ] || [ -z "$ACCESS_TOKEN" ]; then
+          echo "❌ Failed to refresh Google Drive access token"
+          echo "Response: $RESPONSE"
+          exit 1
+        fi
+        
+        echo "token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
+
+    - name: Upload to Google Drive
+      shell: bash
+      run: |
+        FILENAME=$(basename "${{ inputs.source }}")
+        FOLDER_ID="${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}"
+        
+        echo "📤 Uploading $FILENAME to Google Drive folder $FOLDER_ID..."
+        
+        # Prepare metadata
+        METADATA="{\"name\": \"$FILENAME\", \"parents\": [\"$FOLDER_ID\"]}"
+        
+        # Perform multipart upload
+        UPLOAD_RESPONSE=$(curl -s -X POST -L \
+          -H "Authorization: Bearer ${{ steps.get_token.outputs.token }}" \
+          -F "metadata=$METADATA;type=application/json;charset=UTF-8" \
+          -F "file=@${{ inputs.source }};type=application/octet-stream" \
+          "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart")
+        
+        FILE_ID=$(echo $UPLOAD_RESPONSE | jq -r .id)
+        
+        if [ "$FILE_ID" == "null" ] || [ -z "$FILE_ID" ]; then
+          echo "❌ Failed to upload to Google Drive"
+          echo "Response: $UPLOAD_RESPONSE"
+          exit 1
+        fi
+        
+        echo "✅ Successfully uploaded to Google Drive. File ID: $FILE_ID"

@@ -84,8 +84,7 @@ jobs:
           platform: 'iOS'
           build_id: ${{ inputs.build_id }}
 
-      - name: Upload to Cloudflare R2
-        uses: appnatively/workflows/.github/actions/upload-r2@master
+      - name: Upload to Google Drive
+        uses: appnatively/workflows/.github/actions/upload-google-drive@master
         with:
           source: app-ios-archive.zip
-          destination: builds/${{ inputs.build_id }}/
