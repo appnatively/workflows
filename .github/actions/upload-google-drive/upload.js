@@ -20,6 +20,20 @@ async function upload() {
     const uniqueName = `${process.env.BUILD_ID}-${fileName}`;
     const folderId = process.env.FOLDER_ID;
 
+    // Debug logging (masked)
+    console.log('--- Environment Check ---');
+    console.log(`CLIENT_ID: ${process.env.CLIENT_ID ? '✅ Set' : '❌ MISSING'}`);
+    console.log(`CLIENT_SECRET: ${process.env.CLIENT_SECRET ? '✅ Set' : '❌ MISSING'}`);
+    console.log(`REFRESH_TOKEN: ${process.env.REFRESH_TOKEN ? '✅ Set' : '❌ MISSING'}`);
+    console.log(`FOLDER_ID: ${process.env.FOLDER_ID ? `✅ Set (${process.env.FOLDER_ID})` : '❌ MISSING'}`);
+    console.log(`FILE_PATH: ${process.env.FILE_PATH ? '✅ Set' : '❌ MISSING'}`);
+    console.log(`BUILD_ID: ${process.env.BUILD_ID ? '✅ Set' : '❌ MISSING'}`);
+    console.log('-------------------------');
+
+    if (!process.env.CLIENT_ID || !process.env.CLIENT_SECRET || !process.env.REFRESH_TOKEN) {
+      throw new Error('Required Google Drive credentials are missing or empty.');
+    }
+
     console.log(`📤 Uploading ${uniqueName} to Google Drive folder ${folderId}...`);
 
     const fileMetadata = {
