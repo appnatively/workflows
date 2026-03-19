@@ -14,9 +14,13 @@ on:
         required: false
         type: string
         default: '17'
+      pnpm_version:
+        required: false
+        type: string
+        default: '10'
     secrets:
       APPNATIVELY_SECRETS:
-        required: false
+        required: true
 
 
 jobs:
@@ -26,22 +30,6 @@ jobs:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
     steps:
-      - name: Debug Secret in Child
-        run: |
-          echo "--- Secret Presence Check (Child) ---"
-          echo "APPNATIVELY_SECRETS: ${{ secrets.APPNATIVELY_SECRETS != '' && '✅ Set' || '❌ MISSING' }}"
-          echo "------------------------------------"
-
-      - name: Create Test File
-        run: echo "AppNatively Google Drive Upload Test - $(date)" > test.txt
-
-      - name: Upload to Google Drive
-        uses: appnatively/workflows/.github/actions/upload-google-drive@master
-        with:
-          source: test.txt
-          build_id: 'test-build'
-          appnatively_secrets: ${{ secrets.APPNATIVELY_SECRETS }}
-
       - name: Download from R2
         uses: appnatively/workflows/.github/actions/download-r2@master
 
@@ -51,6 +39,7 @@ jobs:
           android: true
           node_version: ${{ inputs.node_version }}
           java_version: ${{ inputs.java_version }}
+          pnpm_version: ${{ inputs.pnpm_version }}
 
       # 📦 Verify bundle exists (optional but recommended)
       - name: Verify Pre-built JS Bundle

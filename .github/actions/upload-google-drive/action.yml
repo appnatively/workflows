@@ -11,6 +11,14 @@ inputs:
   appnatively_secrets:
     description: 'JSON string containing GOOGLE_DRIVE_CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN, and FOLDER_ID'
     required: true
+  pnpm_version:
+    description: 'pnpm version'
+    required: false
+    default: '10'
+  node_version:
+    description: 'Node.js version'
+    required: false
+    default: '24.11'
 
 runs:
   using: "composite"
@@ -18,12 +26,12 @@ runs:
     - name: Set up pnpm
       uses: pnpm/action-setup@v4
       with:
-        version: 9
+        version: ${{ inputs.pnpm_version }}
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '24.11'
+        node-version: ${{ inputs.node_version }}
 
     - name: Upload to Google Drive (JS)
       shell: bash

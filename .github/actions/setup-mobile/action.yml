@@ -22,6 +22,10 @@ inputs:
     description: 'Ruby version'
     required: false
     default: '3.3'
+  pnpm_version:
+    description: 'pnpm version'
+    required: false
+    default: '10'
 
 runs:
   using: "composite"
@@ -29,7 +33,7 @@ runs:
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:
-        version: 10
+        version: ${{ inputs.pnpm_version }}
         run_install: false
 
     - name: Setup Node
@@ -41,9 +45,16 @@ runs:
           app/pnpm-lock.yaml
           native-components/pnpm-lock.yaml
 
-    - name: Install All Dependencies (Workspace)
+    - name: Install Workspace Dependencies (Optimized)
       shell: bash
-      run: pnpm install --frozen-lockfile --prefer-offline
+      run: |
+        if [ "${{ inputs.ios }}" == "true" ]; then
+          pnpm install --frozen-lockfile --prefer-offline --filter "./app" --filter "./native-components"
+        elif [ "${{ inputs.android }}" == "true" ]; then
+          pnpm install --frozen-lockfile --prefer-offline --filter "./app"
+        else
+          pnpm install --frozen-lockfile --prefer-offline
+        fi
 
     # iOS Specific Setup
     - name: Run iOS Setup
