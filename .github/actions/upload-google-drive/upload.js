@@ -29,7 +29,6 @@ async function upload() {
     const rawFilePath = process.env.FILE_PATH;
     const filePath = path.isAbsolute(rawFilePath) ? rawFilePath : path.resolve(workspacePath, rawFilePath);
     const fileName = path.basename(filePath);
-    const uniqueName = `${process.env.BUILD_ID || 'manual'}-${fileName}`;
 
     // Debug logging (masked)
     console.log('--- Environment Check ---');
@@ -59,12 +58,46 @@ async function upload() {
 
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
     
-    // 3. Perform Upload
-    console.log(`📤 Uploading ${uniqueName} to Google Drive folder ${GOOGLE_DRIVE_FOLDER_ID}...`);
+    const buildId = process.env.BUILD_ID || 'manual';
+
+    // 3. Ensure folder structure: builds/{build_id}
+    console.log(`📂 Ensuring folder structure: builds/${buildId}...`);
+    
+    async function findOrCreateFolder(name, parentId) {
+      const query = `name = '${name}' and mimeType = 'application/vnd.google-apps.folder' and '${parentId}' in parents and trashed = false`;
+      const res = await drive.files.list({
+        q: query,
+        fields: 'files(id, name)',
+        spaces: 'drive'
+      });
+
+      if (res.data.files && res.data.files.length > 0) {
+        return res.data.files[0].id;
+      }
+
+      const folderMetadata = {
+        name: name,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentId]
+      };
+
+      const folder = await drive.files.create({
+        requestBody: folderMetadata,
+        fields: 'id'
+      });
+
+      return folder.data.id;
+    }
+
+    const buildsFolderId = await findOrCreateFolder('builds', GOOGLE_DRIVE_FOLDER_ID);
+    const targetFolderId = await findOrCreateFolder(buildId, buildsFolderId);
+
+    // 4. Perform Upload
+    console.log(`📤 Uploading ${fileName} to Google Drive path: builds/${buildId}/${fileName}...`);
 
     const fileMetadata = {
-      name: uniqueName,
-      parents: [GOOGLE_DRIVE_FOLDER_ID]
+      name: fileName,
+      parents: [targetFolderId]
     };
 
     const media = {
