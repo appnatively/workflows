@@ -25,7 +25,9 @@ async function upload() {
       GOOGLE_DRIVE_TOKEN_EXPIRY
     } = secrets;
 
-    const filePath = process.env.FILE_PATH;
+    const workspacePath = process.env.GITHUB_WORKSPACE || process.cwd();
+    const rawFilePath = process.env.FILE_PATH;
+    const filePath = path.isAbsolute(rawFilePath) ? rawFilePath : path.resolve(workspacePath, rawFilePath);
     const fileName = path.basename(filePath);
     const uniqueName = `${process.env.BUILD_ID || 'manual'}-${fileName}`;
 
