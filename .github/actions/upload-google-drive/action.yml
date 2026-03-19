@@ -5,6 +5,21 @@ inputs:
   source:
     description: 'The file to upload'
     required: true
+  build_id:
+    description: 'The ID of the build'
+    required: true
+  client_id:
+    description: 'Google Drive Client ID'
+    required: true
+  client_secret:
+    description: 'Google Drive Client Secret'
+    required: true
+  refresh_token:
+    description: 'Google Drive Refresh Token'
+    required: true
+  folder_id:
+    description: 'Google Drive Folder ID'
+    required: true
 
 runs:
   using: "composite"
@@ -14,9 +29,9 @@ runs:
       shell: bash
       run: |
         RESPONSE=$(curl -s -X POST https://oauth2.googleapis.com/token \
-          -d client_id="${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}" \
-          -d client_secret="${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}" \
-          -d refresh_token="${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}" \
+          -d client_id="${{ inputs.client_id }}" \
+          -d client_secret="${{ inputs.client_secret }}" \
+          -d refresh_token="${{ inputs.refresh_token }}" \
           -d grant_type=refresh_token)
         
         ACCESS_TOKEN=$(echo $RESPONSE | jq -r .access_token)
@@ -33,12 +48,14 @@ runs:
       shell: bash
       run: |
         FILENAME=$(basename "${{ inputs.source }}")
-        FOLDER_ID="${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}"
+        # Use build_id prefix to make files unique
+        UNIQUE_NAME="${{ inputs.build_id }}-$FILENAME"
+        FOLDER_ID="${{ inputs.folder_id }}"
         
-        echo "📤 Uploading $FILENAME to Google Drive folder $FOLDER_ID..."
+        echo "📤 Uploading $UNIQUE_NAME to Google Drive folder $FOLDER_ID..."
         
         # Prepare metadata
-        METADATA="{\"name\": \"$FILENAME\", \"parents\": [\"$FOLDER_ID\"]}"
+        METADATA="{\"name\": \"$UNIQUE_NAME\", \"parents\": [\"$FOLDER_ID\"]}"
         
         # Perform multipart upload
         UPLOAD_RESPONSE=$(curl -s -X POST -L \
