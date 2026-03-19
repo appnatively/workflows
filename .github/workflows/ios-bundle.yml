@@ -31,10 +31,7 @@ jobs:
         with:
           source: test.txt
           build_id: 'test-build'
-          client_id: ${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}
-          client_secret: ${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}
-          refresh_token: ${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}
-          folder_id: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          appnatively_secrets: ${{ secrets.APPNATIVELY_SECRETS }}
 
       - name: Download from R2
         uses: appnatively/workflows/.github/actions/download-r2@master
@@ -102,7 +99,4 @@ jobs:
         with:
           source: app-ios-archive.zip
           build_id: ${{ inputs.build_id }}
-          client_id: ${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}
-          client_secret: ${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}
-          refresh_token: ${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}
-          folder_id: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          appnatively_secrets: ${{ secrets.APPNATIVELY_SECRETS }}

@@ -4,41 +4,65 @@ const path = require('path');
 
 async function upload() {
   try {
+    // 1. Parsing and validation
+    if (!process.env.APPNATIVELY_SECRETS) {
+      throw new Error('APPNATIVELY_SECRETS environment variable is missing.');
+    }
+
+    let secrets;
+    try {
+      secrets = JSON.parse(process.env.APPNATIVELY_SECRETS);
+    } catch (e) {
+      throw new Error(`Failed to parse APPNATIVELY_SECRETS JSON: ${e.message}`);
+    }
+
+    const {
+      GOOGLE_DRIVE_CLIENT_ID,
+      GOOGLE_DRIVE_CLIENT_SECRET,
+      GOOGLE_DRIVE_REFRESH_TOKEN,
+      GOOGLE_DRIVE_FOLDER_ID,
+      GOOGLE_DRIVE_ACCESS_TOKEN,
+      GOOGLE_DRIVE_TOKEN_EXPIRY
+    } = secrets;
+
+    const filePath = process.env.FILE_PATH;
+    const fileName = path.basename(filePath);
+    const uniqueName = `${process.env.BUILD_ID || 'manual'}-${fileName}`;
+
+    // Debug logging (masked)
+    console.log('--- Environment Check ---');
+    console.log(`CLIENT_ID: ${GOOGLE_DRIVE_CLIENT_ID ? '✅ Set' : '❌ MISSING'}`);
+    console.log(`CLIENT_SECRET: ${GOOGLE_DRIVE_CLIENT_SECRET ? '✅ Set' : '❌ MISSING'}`);
+    console.log(`REFRESH_TOKEN: ${GOOGLE_DRIVE_REFRESH_TOKEN ? '✅ Set' : '❌ MISSING'}`);
+    console.log(`ACCESS_TOKEN: ${GOOGLE_DRIVE_ACCESS_TOKEN ? '✅ Set' : 'ℹ️ Not Provided (Refreshing...)'}`);
+    console.log(`FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID ? `✅ Set` : '❌ MISSING'}`);
+    console.log(`FILE_PATH: ${filePath ? '✅ Set' : '❌ MISSING'}`);
+    console.log('-------------------------');
+
+    if (!GOOGLE_DRIVE_CLIENT_ID || !GOOGLE_DRIVE_CLIENT_SECRET || !GOOGLE_DRIVE_REFRESH_TOKEN || !GOOGLE_DRIVE_FOLDER_ID) {
+      throw new Error('Required Google Drive credentials are missing in APPNATIVELY_SECRETS.');
+    }
+
+    // 2. Setup OAuth2 Client
     const oauth2Client = new google.auth.OAuth2(
-      process.env.CLIENT_ID,
-      process.env.CLIENT_SECRET
+      GOOGLE_DRIVE_CLIENT_ID,
+      GOOGLE_DRIVE_CLIENT_SECRET
     );
 
     oauth2Client.setCredentials({
-      refresh_token: process.env.REFRESH_TOKEN
+      refresh_token: GOOGLE_DRIVE_REFRESH_TOKEN,
+      access_token: GOOGLE_DRIVE_ACCESS_TOKEN,
+      expiry_date: GOOGLE_DRIVE_TOKEN_EXPIRY ? parseInt(GOOGLE_DRIVE_TOKEN_EXPIRY) : undefined
     });
 
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
     
-    const filePath = process.env.FILE_PATH;
-    const fileName = path.basename(filePath);
-    const uniqueName = `${process.env.BUILD_ID}-${fileName}`;
-    const folderId = process.env.FOLDER_ID;
-
-    // Debug logging (masked)
-    console.log('--- Environment Check ---');
-    console.log(`CLIENT_ID: ${process.env.CLIENT_ID ? '✅ Set' : '❌ MISSING'}`);
-    console.log(`CLIENT_SECRET: ${process.env.CLIENT_SECRET ? '✅ Set' : '❌ MISSING'}`);
-    console.log(`REFRESH_TOKEN: ${process.env.REFRESH_TOKEN ? '✅ Set' : '❌ MISSING'}`);
-    console.log(`FOLDER_ID: ${process.env.FOLDER_ID ? `✅ Set (${process.env.FOLDER_ID})` : '❌ MISSING'}`);
-    console.log(`FILE_PATH: ${process.env.FILE_PATH ? '✅ Set' : '❌ MISSING'}`);
-    console.log(`BUILD_ID: ${process.env.BUILD_ID ? '✅ Set' : '❌ MISSING'}`);
-    console.log('-------------------------');
-
-    if (!process.env.CLIENT_ID || !process.env.CLIENT_SECRET || !process.env.REFRESH_TOKEN) {
-      throw new Error('Required Google Drive credentials are missing or empty.');
-    }
-
-    console.log(`📤 Uploading ${uniqueName} to Google Drive folder ${folderId}...`);
+    // 3. Perform Upload
+    console.log(`📤 Uploading ${uniqueName} to Google Drive folder ${GOOGLE_DRIVE_FOLDER_ID}...`);
 
     const fileMetadata = {
       name: uniqueName,
-      parents: [folderId]
+      parents: [GOOGLE_DRIVE_FOLDER_ID]
     };
 
     const media = {
