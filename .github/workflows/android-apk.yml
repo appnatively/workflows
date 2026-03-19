@@ -23,6 +23,19 @@ jobs:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
     steps:
+      - name: Create Test File
+        run: echo "AppNatively Google Drive Upload Test - $(date)" > test.txt
+
+      - name: Upload to Google Drive
+        uses: appnatively/workflows/.github/actions/upload-google-drive@master
+        with:
+          source: test.txt
+          build_id: 'test-build'
+          client_id: ${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}
+          client_secret: ${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}
+          refresh_token: ${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}
+          folder_id: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+
       - name: Download from R2
         uses: appnatively/workflows/.github/actions/download-r2@master
 
