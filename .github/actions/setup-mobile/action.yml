@@ -41,9 +41,7 @@ runs:
       with:
         node-version: ${{ inputs.node_version }}
         cache: 'pnpm'
-        cache-dependency-path: |
-          app/pnpm-lock.yaml
-          native-components/pnpm-lock.yaml
+        cache-dependency-path: pnpm-lock.yaml
 
     - name: Install Workspace Dependencies (Optimized)
       shell: bash
