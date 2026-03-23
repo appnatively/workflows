@@ -50,7 +50,21 @@ jobs:
             exit 1
           fi
           echo "✅ Pre-built JS bundle found"
-          ls -la android/app/src/main/assets/
+        working-directory: app
+
+      # 💉 Inject Dynamic Environment Variables
+      - name: Inject Dynamic Environment Variables
+        run: |
+          echo "💉 Injecting dynamic environment variables into JS bundle..."
+          for var in EXPO_PUBLIC_APP_ID EXPO_PUBLIC_API_URL; do
+            VALUE=$(echo "${{ secrets.APPNATIVELY_SECRETS }}" | jq -r ".$var // empty")
+            if [ -n "$VALUE" ]; then
+              echo "✅ Injecting $var"
+              sed -i "s|__PLACEHOLDER_${var}__|${VALUE}|g" android/app/src/main/assets/index.android.bundle
+            else
+              echo "⚠️ $var not found in secrets, skipping replacement"
+            fi
+          done
         working-directory: app
 
       # 🏗️ Build APK without re-bundling JavaScript
