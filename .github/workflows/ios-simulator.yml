@@ -40,6 +40,12 @@ jobs:
           ruby_version: ${{ inputs.ruby_version }}
           pnpm_version: ${{ inputs.pnpm_version }}
 
+      - name: Setup Firebase
+        uses: appnatively/workflows/.github/actions/setup-firebase@master
+        with:
+          build_id: ${{ inputs.build_id }}
+          appnatively_secrets: ${{ secrets.APPNATIVELY_SECRETS }}
+
 
       - name: Build for Simulator
         run: |
