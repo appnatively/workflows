@@ -34,9 +34,12 @@ FIREBASE_IOS=$(echo "$CONFIG_RESPONSE" | jq -r '.data.firebase_ios // empty')
 if [ -n "$FIREBASE_ANDROID" ]; then
   echo "✅ Injecting google-services.json"
   echo "$FIREBASE_ANDROID" > google-services.json
-  # Native path for Gradle
-  mkdir -p android/app
-  echo "$FIREBASE_ANDROID" > android/app/google-services.json
+  # Native path for Gradle (if it exists)
+  if [ -d "android/app" ]; then
+    echo "$FIREBASE_ANDROID" > android/app/google-services.json
+  elif [ "$(basename $(pwd))" == "android" ] && [ -d "app" ]; then
+    echo "$FIREBASE_ANDROID" > app/google-services.json
+  fi
 else
   echo "ℹ️ No firebase_android config found."
 fi
@@ -44,10 +47,13 @@ fi
 # 5. Inject iOS config
 if [ -n "$FIREBASE_IOS" ]; then
   echo "✅ Injecting GoogleService-Info.plist"
-  # Support both paths
-  mkdir -p ios/app
-  echo "$FIREBASE_IOS" > ios/app/GoogleService-Info.plist
   echo "$FIREBASE_IOS" > GoogleService-Info.plist
+  # Native path for Xcode (if it exists)
+  if [ -d "ios/app" ]; then
+    echo "$FIREBASE_IOS" > ios/app/GoogleService-Info.plist
+  elif [ "$(basename $(pwd))" == "ios" ] && [ -d "app" ]; then
+    echo "$FIREBASE_IOS" > app/GoogleService-Info.plist
+  fi
 else
   echo "ℹ️ No firebase_ios config found."
 fi

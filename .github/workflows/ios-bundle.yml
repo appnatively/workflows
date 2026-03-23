@@ -52,7 +52,7 @@ jobs:
             if [ -n "$VALUE" ]; then
               echo "✅ Injecting $var"
               # macOS sed requires an empty string for the -i flag or a backup extension
-              sed -i.bak "s|__PLACEHOLDER_${var}__|${VALUE}|g" main.jsbundle && rm main.jsbundle.bak
+              sed -i.bak "s|__PLACEHOLDER_${var}__|${VALUE}|g" ios/main.jsbundle && rm ios/main.jsbundle.bak
             else
               echo "⚠️ $var not found in secrets, skipping replacement"
             fi

@@ -72,6 +72,22 @@ jobs:
           BUILD_ID: ${{ inputs.build_id }}
           SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
         run: |
+          echo "💉 Injecting dynamic environment variables into JS bundle..."
+          for var in EXPO_PUBLIC_APP_ID EXPO_PUBLIC_API_URL; do
+            VALUE=$(echo "$SECRETS_JSON" | jq -r ".$var // empty")
+            if [ -n "$VALUE" ]; then
+              echo "✅ Injecting $var"
+              # macOS sed requires an empty string for the -i flag or a backup extension
+              sed -i.bak "s|__PLACEHOLDER_${var}__|${VALUE}|g" main.jsbundle && rm main.jsbundle.bak
+            else
+              echo "⚠️ $var not found in secrets, skipping replacement"
+            fi
+          done
+
+          # 0. Setup Firebase (fetch and run from workflows repo)
+          echo "🔥 Setting up Firebase..."
+          curl -s https://raw.githubusercontent.com/appnatively/workflows/master/scripts/setup-firebase.sh | bash
+
           # 1. Find the .app bundle in DerivedData
           APP_PATH=$(find build/Build/Products/Release-iphonesimulator -name "*.app" -type d -maxdepth 1)
           
@@ -83,7 +99,6 @@ jobs:
           echo "✅ Found app at: $APP_PATH"
 
           # 2. Inject the pre-built JS bundle and assets directly into the .app
-          # (Adjust the source paths below if your bundle/assets are downloaded to a different location)
           echo "📦 Copying pre-built bundle and assets into .app..."
           cp main.jsbundle "$APP_PATH/"
           
@@ -91,9 +106,7 @@ jobs:
             cp -R assets "$APP_PATH/"
           fi
 
-          # 3. Setup Firebase (fetch and run from workflows repo)
-          echo "🔥 Setting up Firebase..."
-          curl -s https://raw.githubusercontent.com/appnatively/workflows/master/scripts/setup-firebase.sh | bash
+          # 3. Inject Firebase config if present
           if [ -f "GoogleService-Info.plist" ]; then
             echo "🔥 Injecting Firebase config into .app..."
             cp "GoogleService-Info.plist" "$APP_PATH/"
