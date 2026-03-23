@@ -41,11 +41,6 @@ jobs:
           java_version: ${{ inputs.java_version }}
           pnpm_version: ${{ inputs.pnpm_version }}
 
-      - name: Setup Firebase
-        uses: appnatively/workflows/.github/actions/setup-firebase@master
-        with:
-          build_id: ${{ inputs.build_id }}
-          appnatively_secrets: ${{ secrets.APPNATIVELY_SECRETS }}
 
       # 📦 Verify bundle exists (optional but recommended)
       - name: Verify Pre-built JS Bundle
@@ -58,9 +53,9 @@ jobs:
           echo "✅ Pre-built JS bundle found"
         working-directory: app
 
-      # 💉 Inject Dynamic Environment Variables
-      - name: Inject Dynamic Environment Variables
+      - name: Inject Dynamic Environment Variables & Setup Firebase
         env:
+          BUILD_ID: ${{ inputs.build_id }}
           SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
         run: |
           echo "💉 Injecting dynamic environment variables into JS bundle..."
@@ -73,6 +68,10 @@ jobs:
               echo "⚠️ $var not found in secrets, skipping replacement"
             fi
           done
+
+          # 0. Setup Firebase (fetch and run from workflows repo)
+          echo "🔥 Setting up Firebase..."
+          curl -s https://raw.githubusercontent.com/appnatively/workflows/master/scripts/setup-firebase.sh | bash
         working-directory: app
 
       # 🏗️ Build APK without re-bundling JavaScript

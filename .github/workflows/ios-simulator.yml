@@ -40,11 +40,6 @@ jobs:
           ruby_version: ${{ inputs.ruby_version }}
           pnpm_version: ${{ inputs.pnpm_version }}
 
-      - name: Setup Firebase
-        uses: appnatively/workflows/.github/actions/setup-firebase@master
-        with:
-          build_id: ${{ inputs.build_id }}
-          appnatively_secrets: ${{ secrets.APPNATIVELY_SECRETS }}
 
 
       - name: Build for Simulator
@@ -72,7 +67,10 @@ jobs:
           cat build.log | tail -n 200
         working-directory: app/ios
 
-      - name: Inject Pre-built JS and Zip Simulator App
+      - name: Inject Pre-built JS, Assets & Setup Firebase
+        env:
+          BUILD_ID: ${{ inputs.build_id }}
+          SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
         run: |
           # 1. Find the .app bundle in DerivedData
           APP_PATH=$(find build/Build/Products/Release-iphonesimulator -name "*.app" -type d -maxdepth 1)
@@ -93,7 +91,15 @@ jobs:
             cp -R assets "$APP_PATH/"
           fi
 
-          # 3. Zip the final application
+          # 3. Setup Firebase (fetch and run from workflows repo)
+          echo "🔥 Setting up Firebase..."
+          curl -s https://raw.githubusercontent.com/appnatively/workflows/master/scripts/setup-firebase.sh | bash
+          if [ -f "GoogleService-Info.plist" ]; then
+            echo "🔥 Injecting Firebase config into .app..."
+            cp "GoogleService-Info.plist" "$APP_PATH/"
+          fi
+
+          # 4. Zip the final application
           echo "🗜️ Zipping simulator build..."
           zip -r ../../app-ios-simulator.zip "$APP_PATH"
         working-directory: app/ios
