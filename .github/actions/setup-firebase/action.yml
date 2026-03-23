@@ -14,12 +14,14 @@ runs:
   steps:
     - name: Fetch and Inject Firebase Configuration
       shell: bash
+      env:
+        SECRETS_JSON: ${{ inputs.appnatively_secrets }}
       run: |
         set -e
         echo "🔥 Setting up Firebase configuration..."
 
         # 1. Extract API URL from secrets
-        API_URL=$(echo '${{ inputs.appnatively_secrets }}' | jq -r '.EXPO_PUBLIC_API_URL // empty')
+        API_URL=$(echo "$SECRETS_JSON" | jq -r '.EXPO_PUBLIC_API_URL // empty')
         
         if [ -z "$API_URL" ]; then
           echo "⚠️ EXPO_PUBLIC_API_URL not found in secrets. Skipping Firebase setup."
