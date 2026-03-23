@@ -34,6 +34,9 @@ FIREBASE_IOS=$(echo "$CONFIG_RESPONSE" | jq -r '.data.firebase_ios // empty')
 if [ -n "$FIREBASE_ANDROID" ]; then
   echo "✅ Injecting google-services.json"
   echo "$FIREBASE_ANDROID" > google-services.json
+  # Native path for Gradle
+  mkdir -p android/app
+  echo "$FIREBASE_ANDROID" > android/app/google-services.json
 else
   echo "ℹ️ No firebase_android config found."
 fi
