@@ -8,12 +8,14 @@ runs:
       run: |
         # Copy to root scripts directory
         mkdir -p scripts
-        cp ${{ github.action_path }}/*.sh scripts/
-        chmod +x scripts/*.sh
+        cp ${{ github.action_path }}/*.sh scripts/ 2>/dev/null || true
+        cp ${{ github.action_path }}/*.js scripts/ 2>/dev/null || true
+        chmod +x scripts/*.sh 2>/dev/null || true
 
         # Also copy to app/scripts if it exists, as many workflow steps run from there
         if [ -d "app" ]; then
           mkdir -p app/scripts
-          cp ${{ github.action_path }}/*.sh app/scripts/
-          chmod +x app/scripts/*.sh
+          cp ${{ github.action_path }}/*.sh app/scripts/ 2>/dev/null || true
+          cp ${{ github.action_path }}/*.js app/scripts/ 2>/dev/null || true
+          chmod +x app/scripts/*.sh 2>/dev/null || true
         fi

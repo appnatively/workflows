@@ -74,6 +74,25 @@ jobs:
           ruby_version: ${{ inputs.ruby_version }}
           pnpm_version: ${{ inputs.pnpm_version }}
 
+      - name: Download App Assets & Inject Dynamic Environment Variables
+        env:
+          BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
+          SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
+        run: |
+          echo "⬇️ Downloading app assets from Google Drive..."
+          ./scripts/setup-assets.sh
+
+          echo "💉 Injecting dynamic environment variables into JS bundle..."
+          for var in EXPO_PUBLIC_APP_ID EXPO_PUBLIC_API_URL; do
+            VALUE=$(echo "$SECRETS_JSON" | jq -r ".$var // empty")
+            if [ -n "$VALUE" ]; then
+              echo "✅ Injecting $var"
+              sed -i.bak "s|__PLACEHOLDER_${var}__|${VALUE}|g" main.jsbundle && rm main.jsbundle.bak
+            fi
+          done
+        shell: bash
+        working-directory: app
+
       - name: Build Simulator App
         run: |
           set -o pipefail
@@ -101,20 +120,12 @@ jobs:
           tail -n 200 build.log >> $GITHUB_STEP_SUMMARY || true
         working-directory: app/ios
 
-      - name: Inject Pre-built JS, Assets & Setup Firebase
+      - name: Setup Firebase
         env:
           BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
           SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
         run: |
-          echo "💉 Injecting dynamic environment variables into JS bundle..."
-          for var in EXPO_PUBLIC_APP_ID EXPO_PUBLIC_API_URL; do
-            VALUE=$(echo "$SECRETS_JSON" | jq -r ".$var // empty")
-            if [ -n "$VALUE" ]; then
-              sed -i.bak "s|__PLACEHOLDER_${var}__|${VALUE}|g" main.jsbundle && rm main.jsbundle.bak
-            fi
-          done
-
-          # 0. Setup Firebase (fetch and run from workflows repo)
+          # Setup Firebase (fetch and run from workflows repo)
           echo "🔥 Setting up Firebase..."
           ./scripts/setup-firebase.sh
 
