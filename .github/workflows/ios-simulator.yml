@@ -40,6 +40,14 @@ jobs:
           ruby_version: ${{ inputs.ruby_version }}
           pnpm_version: ${{ inputs.pnpm_version }}
 
+      - name: Setup App Info (Dynamic Package ID & App Name)
+        env:
+          BUILD_ID: ${{ inputs.build_id }}
+          SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
+        run: |
+          echo "📱 Setting up App Info..."
+          curl -s https://raw.githubusercontent.com/appnatively/workflows/master/scripts/setup-app-info.sh | bash
+        working-directory: app
 
 
       - name: Build for Simulator

@@ -58,6 +58,10 @@ jobs:
             fi
           done
 
+          # 0. Setup App Info (Dynamic Package ID & App Name)
+          echo "📱 Setting up App Info..."
+          curl -s https://raw.githubusercontent.com/appnatively/workflows/master/scripts/setup-app-info.sh | bash
+
           # 0. Setup Firebase (fetch and run from workflows repo)
           echo "🔥 Setting up Firebase..."
           curl -s https://raw.githubusercontent.com/appnatively/workflows/master/scripts/setup-firebase.sh | bash
