@@ -184,9 +184,15 @@ if [ -d "ios" ]; then
   fi
 
   # Rename main project folders and workspace
-  mv "$OLD_IOS_NAME" "$SAFE_APP_NAME"
-  mv "$OLD_IOS_NAME.xcodeproj" "$SAFE_APP_NAME.xcodeproj"
-  mv "$OLD_IOS_NAME.xcworkspace" "$SAFE_APP_NAME.xcworkspace"
+  if [ -d "$OLD_IOS_NAME" ]; then
+    mv "$OLD_IOS_NAME" "$SAFE_APP_NAME"
+  fi
+  if [ -d "$OLD_IOS_NAME.xcodeproj" ]; then
+    mv "$OLD_IOS_NAME.xcodeproj" "$SAFE_APP_NAME.xcodeproj"
+  fi
+  if [ -d "$OLD_IOS_NAME.xcworkspace" ]; then
+    mv "$OLD_IOS_NAME.xcworkspace" "$SAFE_APP_NAME.xcworkspace"
+  fi
 
   cd ../..
 fi
