@@ -32,6 +32,9 @@ jobs:
       - name: Download from R2
         uses: appnatively/workflows/.github/actions/download-r2@master
 
+      - name: Setup Scripts
+        uses: appnatively/workflows/.github/actions/setup-scripts@master
+
       - name: Fetch App Configuration
         env:
           BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}

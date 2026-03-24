@@ -33,6 +33,9 @@ jobs:
       - name: Download from R2
         uses: appnatively/workflows/.github/actions/download-r2@master
 
+      - name: Setup Scripts
+        uses: appnatively/workflows/.github/actions/setup-scripts@master
+
       - name: Setup Environment
         uses: appnatively/workflows/.github/actions/setup-mobile@master
         with:

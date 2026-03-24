@@ -59,54 +59,54 @@ sed_i() {
 }
 
 # --- 2. Update app.json ---
-if [ -f "app/app.json" ]; then
-  echo "📝 Updating app/app.json..."
-  sed_i "s/\"name\": \"$OLD_APP_NAME\"/\"name\": \"$APP_NAME\"/g" app/app.json
+if [ -f "app.json" ]; then
+  echo "📝 Updating app.json..."
+  sed_i "s/\"name\": \"$OLD_APP_NAME\"/\"name\": \"$APP_NAME\"/g" app.json
   
   # Use SLUG if provided, otherwise fallback to APP_NAME
   TARGET_SLUG=${SLUG:-$APP_NAME}
-  sed_i "s/\"slug\": \"$OLD_SLUG\"/\"slug\": \"$TARGET_SLUG\"/g" app/app.json
-  sed_i "s/\"bundleIdentifier\": \"$OLD_PACKAGE_ID\"/\"bundleIdentifier\": \"$PACKAGE_ID\"/g" app/app.json
-  sed_i "s/\"package\": \"$OLD_PACKAGE_ID\"/\"package\": \"$PACKAGE_ID\"/g" app/app.json
+  sed_i "s/\"slug\": \"$OLD_SLUG\"/\"slug\": \"$TARGET_SLUG\"/g" app.json
+  sed_i "s/\"bundleIdentifier\": \"$OLD_PACKAGE_ID\"/\"bundleIdentifier\": \"$PACKAGE_ID\"/g" app.json
+  sed_i "s/\"package\": \"$OLD_PACKAGE_ID\"/\"package\": \"$PACKAGE_ID\"/g" app.json
   # Update scheme
-  sed_i "s/\"scheme\": \"$OLD_SCHEME\"/\"scheme\": \"$TARGET_SLUG\"/g" app/app.json
+  sed_i "s/\"scheme\": \"$OLD_SCHEME\"/\"scheme\": \"$TARGET_SLUG\"/g" app.json
 fi
 
 # --- 3. Android Updates ---
-if [ -d "app/android" ]; then
+if [ -d "android" ]; then
   echo "🤖 Updating Android project..."
   
   # build.gradle
-  if [ -f "app/android/app/build.gradle" ]; then
+  if [ -f "android/app/build.gradle" ]; then
     echo "  - Updating build.gradle"
-    sed_i "s/namespace '$OLD_PACKAGE_ID'/namespace '$PACKAGE_ID'/g" app/android/app/build.gradle
-    sed_i "s/applicationId '$OLD_PACKAGE_ID'/applicationId '$PACKAGE_ID'/g" app/android/app/build.gradle
+    sed_i "s/namespace '$OLD_PACKAGE_ID'/namespace '$PACKAGE_ID'/g" android/app/build.gradle
+    sed_i "s/applicationId '$OLD_PACKAGE_ID'/applicationId '$PACKAGE_ID'/g" android/app/build.gradle
   fi
 
   # strings.xml
-  if [ -f "app/android/app/src/main/res/values/strings.xml" ]; then
+  if [ -f "android/app/src/main/res/values/strings.xml" ]; then
     echo "  - Updating strings.xml"
-    sed_i "s/<string name=\"app_name\">$OLD_APP_NAME<\/string>/<string name=\"app_name\">$APP_NAME<\/string>/g" app/android/app/src/main/res/values/strings.xml
+    sed_i "s/<string name=\"app_name\">$OLD_APP_NAME<\/string>/<string name=\"app_name\">$APP_NAME<\/string>/g" android/app/src/main/res/values/strings.xml
   fi
 
   # settings.gradle
-  if [ -f "app/android/settings.gradle" ]; then
+  if [ -f "android/settings.gradle" ]; then
     echo "  - Updating settings.gradle"
-    sed_i "s/rootProject.name = '$OLD_APP_NAME'/rootProject.name = '$APP_NAME'/g" app/android/settings.gradle
+    sed_i "s/rootProject.name = '$OLD_APP_NAME'/rootProject.name = '$APP_NAME'/g" android/settings.gradle
   fi
 
   # AndroidManifest.xml (Deep link scheme)
-  if [ -f "app/android/app/src/main/AndroidManifest.xml" ]; then
+  if [ -f "android/app/src/main/AndroidManifest.xml" ]; then
     echo "  - Updating AndroidManifest scheme"
-    sed_i "s/android:scheme=\"$OLD_SCHEME\"/android:scheme=\"$TARGET_SLUG\"/g" app/android/app/src/main/AndroidManifest.xml
+    sed_i "s/android:scheme=\"$OLD_SCHEME\"/android:scheme=\"$TARGET_SLUG\"/g" android/app/src/main/AndroidManifest.xml
   fi
 
   # Kotlin Files & Package Structure
   OLD_PACKAGE_PATH=$(echo $OLD_PACKAGE_ID | tr '.' '/')
   NEW_PACKAGE_PATH=$(echo $PACKAGE_ID | tr '.' '/')
   
-  SOURCE_DIR="app/android/app/src/main/java/$OLD_PACKAGE_PATH"
-  TARGET_DIR="app/android/app/src/main/java/$NEW_PACKAGE_PATH"
+  SOURCE_DIR="android/app/src/main/java/$OLD_PACKAGE_PATH"
+  TARGET_DIR="android/app/src/main/java/$NEW_PACKAGE_PATH"
 
   if [ -d "$SOURCE_DIR" ]; then
     echo "  - Updating package declarations in Kotlin files..."
@@ -126,10 +126,10 @@ if [ -d "app/android" ]; then
 fi
 
 # --- 4. iOS Updates ---
-if [ -d "app/ios" ]; then
+if [ -d "ios" ]; then
   echo "🍎 Updating iOS project..."
   
-  cd app/ios
+  cd ios
 
   # 4.1 Update Internal Data First (Using Old Paths)
   echo "  - Updating internal data in project files..."

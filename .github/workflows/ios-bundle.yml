@@ -33,6 +33,9 @@ jobs:
       - name: Download from R2
         uses: appnatively/workflows/.github/actions/download-r2@master
 
+      - name: Setup Scripts
+        uses: appnatively/workflows/.github/actions/setup-scripts@master
+
       - name: Setup App Info (Dynamic Package ID and App Name)
         run: ./scripts/setup-app-info.sh
         env:

@@ -1,0 +1,11 @@
+name: 'Setup Build Scripts'
+description: 'Makes build scripts available to the workflow'
+runs:
+  using: 'composite'
+  steps:
+    - name: Copy Scripts to Workspace
+      shell: bash
+      run: |
+        mkdir -p scripts
+        cp ${{ github.action_path }}/*.sh scripts/
+        chmod +x scripts/*.sh
