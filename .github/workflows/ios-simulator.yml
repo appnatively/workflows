@@ -87,7 +87,7 @@ jobs:
             VALUE=$(echo "$SECRETS_JSON" | jq -r ".$var // empty")
             if [ -n "$VALUE" ]; then
               echo "✅ Injecting $var"
-              sed -i.bak "s|__PLACEHOLDER_${var}__|${VALUE}|g" main.jsbundle && rm main.jsbundle.bak
+              sed -i.bak "s|__PLACEHOLDER_${var}__|${VALUE}|g" ios/main.jsbundle && rm ios/main.jsbundle.bak
             fi
           done
         shell: bash
