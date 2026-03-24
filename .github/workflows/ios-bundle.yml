@@ -36,6 +36,20 @@ jobs:
       - name: Setup Scripts
         uses: appnatively/workflows/.github/actions/setup-scripts@master
 
+      - name: Fetch App Configuration
+        env:
+          BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
+          SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
+        run: |
+          API_URL=$(echo "$SECRETS_JSON" | jq -r '.EXPO_PUBLIC_API_URL // empty')
+          if [ -z "$API_URL" ]; then
+            echo "❌ EXPO_PUBLIC_API_URL not found in secrets."
+            exit 1
+          fi
+          echo "📡 Fetching config from ${API_URL}/mobile-app/builds/${BUILD_ID}/config"
+          curl -s "${API_URL}/mobile-app/builds/${BUILD_ID}/config" > app_config.json
+        working-directory: app
+
       - name: Setup App Info (Dynamic Package ID and App Name)
         run: ./scripts/setup-app-info.sh
         env:
@@ -59,20 +73,6 @@ jobs:
           node_version: ${{ inputs.node_version }}
           ruby_version: ${{ inputs.ruby_version }}
           pnpm_version: ${{ inputs.pnpm_version }}
-
-      - name: Fetch App Configuration
-        env:
-          BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
-          SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
-        run: |
-          API_URL=$(echo "$SECRETS_JSON" | jq -r '.EXPO_PUBLIC_API_URL // empty')
-          if [ -z "$API_URL" ]; then
-            echo "❌ EXPO_PUBLIC_API_URL not found in secrets."
-            exit 1
-          fi
-          echo "📡 Fetching config from ${API_URL}/mobile-app/builds/${BUILD_ID}/config"
-          curl -s "${API_URL}/mobile-app/builds/${BUILD_ID}/config" > app_config.json
-        working-directory: app
 
       - name: Download App Assets & Inject Dynamic Environment Variables
         env:
