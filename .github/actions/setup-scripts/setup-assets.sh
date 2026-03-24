@@ -32,16 +32,20 @@ echo "📖 Loading build configuration..."
 CONFIG_RESPONSE=$(cat app_config.json)
 
 # Mapping of backend configuration keys to local project file paths
-declare -A ASSETS=(
-  ["asset_icon"]="assets/images/icon.png"
-  ["asset_splash"]="assets/images/splash-icon.png"
-  ["asset_adaptive_foreground"]="assets/images/android-icon-foreground.png"
-  ["asset_adaptive_background"]="assets/images/android-icon-background.png"
-  ["asset_adaptive_monochrome"]="assets/images/android-icon-monochrome.png"
-)
+ASSET_KEYS="asset_icon asset_splash asset_adaptive_foreground asset_adaptive_background asset_adaptive_monochrome"
 
 # Process each defined asset type
-for KEY in "${!ASSETS[@]}"; do
+for KEY in $ASSET_KEYS; do
+  # Determine the destination path based on the key
+  case "$KEY" in
+    "asset_icon") DEST="assets/images/icon.png" ;;
+    "asset_splash") DEST="assets/images/splash-icon.png" ;;
+    "asset_adaptive_foreground") DEST="assets/images/android-icon-foreground.png" ;;
+    "asset_adaptive_background") DEST="assets/images/android-icon-background.png" ;;
+    "asset_adaptive_monochrome") DEST="assets/images/android-icon-monochrome.png" ;;
+    *) continue ;;
+  esac
+
   # Extract the asset value (JSON string or plain ID) from the configuration response
   ASSET_VALUE=$(echo "$CONFIG_RESPONSE" | jq -r ".data.$KEY // empty")
   
@@ -64,7 +68,6 @@ for KEY in "${!ASSETS[@]}"; do
     continue
   fi
   
-  DEST="${ASSETS[$KEY]}"
   echo "📥 Downloading $KEY ($FILE_ID) to $DEST..."
   
   # Create destination directory if it doesn't exist
