@@ -33,7 +33,23 @@ jobs:
       - name: Download from R2
         uses: appnatively/workflows/.github/actions/download-r2@master
 
-      - name: Setup Environment
+      - name: Setup App Info (Dynamic Package ID and App Name)
+        run: ./scripts/setup-app-info.sh
+        env:
+          BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
+          API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+        working-directory: app
+
+      - name: Get iOS Project Name
+        id: ios-name
+        run: |
+          if [ -f app/.ios_project_name ]; then
+            echo "name=$(cat app/.ios_project_name)" >> $GITHUB_OUTPUT
+          else
+            echo "name=AppNativelyApp" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Mobile Environment
         uses: appnatively/workflows/.github/actions/setup-mobile@master
         with:
           ios: true
@@ -41,73 +57,76 @@ jobs:
           ruby_version: ${{ inputs.ruby_version }}
           pnpm_version: ${{ inputs.pnpm_version }}
 
-      - name: Inject Dynamic Environment Variables & Setup Firebase
+      - name: Fetch App Configuration
         env:
-          BUILD_ID: ${{ inputs.build_id }}
+          BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
           SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
         run: |
+          API_URL=$(echo "$SECRETS_JSON" | jq -r '.EXPO_PUBLIC_API_URL // empty')
+          if [ -z "$API_URL" ]; then
+            echo "❌ EXPO_PUBLIC_API_URL not found in secrets."
+            exit 1
+          fi
+          echo "📡 Fetching config from ${API_URL}/mobile-app/builds/${BUILD_ID}/config"
+          curl -s "${API_URL}/mobile-app/builds/${BUILD_ID}/config" > app_config.json
+        working-directory: app
+
+      - name: Download App Assets & Inject Dynamic Environment Variables
+        env:
+          BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
+          SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
+
+        run: |
+          echo "⬇️ Downloading app assets from Google Drive..."
+          ./scripts/setup-assets.sh
+
           echo "💉 Injecting dynamic environment variables into JS bundle..."
           for var in EXPO_PUBLIC_APP_ID EXPO_PUBLIC_API_URL; do
             VALUE=$(echo "$SECRETS_JSON" | jq -r ".$var // empty")
             if [ -n "$VALUE" ]; then
               echo "✅ Injecting $var"
-              # macOS sed requires an empty string for the -i flag or a backup extension
               sed -i.bak "s|__PLACEHOLDER_${var}__|${VALUE}|g" ios/main.jsbundle && rm ios/main.jsbundle.bak
-            else
-              echo "⚠️ $var not found in secrets, skipping replacement"
             fi
           done
 
-          # 0. Setup App Info (Dynamic Package ID & App Name)
-          echo "📱 Setting up App Info..."
-          curl -s https://raw.githubusercontent.com/appnatively/workflows/master/scripts/setup-app-info.sh | bash
-
           # 0. Setup Firebase (fetch and run from workflows repo)
           echo "🔥 Setting up Firebase..."
-          curl -s https://raw.githubusercontent.com/appnatively/workflows/master/scripts/setup-firebase.sh | bash
+          ./scripts/setup-firebase.sh
         shell: bash
         working-directory: app
-
 
       - name: Build iOS Archive (Unsigned)
         run: |
           set -o pipefail
           xcodebuild archive \
-            -workspace app.xcworkspace \
-            -scheme app \
+            -workspace ${{ steps.ios-name.outputs.name }}.xcworkspace \
+            -scheme ${{ steps.ios-name.outputs.name }} \
             -configuration Release \
-            -archivePath build/app.xcarchive \
+            -archivePath build/${{ steps.ios-name.outputs.name }}.xcarchive \
             SKIP_BUNDLING=1 \
+            -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE_SPECIFIER=""
+            CODE_SIGN_ENTITLEMENTS="" \
+            CODE_SIGNING_IDENTITY="" | xcpretty
+        working-directory: app/ios
+
+      - name: Create IPA (Unsigned Payload)
+        run: |
+          mkdir -p Payload
+          cp -r build/${{ steps.ios-name.outputs.name }}.xcarchive/Products/Applications/*.app Payload/
+          zip -r ${{ steps.ios-name.outputs.name }}.ipa Payload
         working-directory: app/ios
 
       - name: Inject Pre-built JS and Zip Archive
         run: |
-          # 1. Find the .app bundle inside the generated xcarchive
-          APP_PATH=$(find build/app.xcarchive/Products/Applications -name "*.app" -type d -maxdepth 1)
+          APP_PATH=$(find build/${{ steps.ios-name.outputs.name }}.xcarchive/Products/Applications -name "*.app" -type d -maxdepth 1)
+          if [ -z "$APP_PATH" ]; then exit 1; fi
           
-          if [ -z "$APP_PATH" ]; then
-            echo "❌ Could not find .app directory inside the archive!"
-            exit 1
-          fi
-          
-          echo "✅ Found app inside archive at: $APP_PATH"
-
-          # 2. Inject the pre-built JS bundle and assets directly into the .app
-          # (Ensure the paths to main.jsbundle and assets align with your download-r2 output)
-          echo "📦 Copying pre-built bundle and assets into .app..."
           cp main.jsbundle "$APP_PATH/"
-          
-          if [ -d "assets" ]; then
-            cp -R assets "$APP_PATH/"
-          fi
+          if [ -d "assets" ]; then cp -R assets "$APP_PATH/"; fi
 
-          # 3. Zip the completely assembled archive
-          echo "🗜️ Zipping iOS archive..."
-          zip -r ../../app-ios-archive.zip build/app.xcarchive
+          zip -r ../../app-ios-archive.zip build/${{ steps.ios-name.outputs.name }}.xcarchive
         working-directory: app/ios
 
       - name: Generate Job Summary

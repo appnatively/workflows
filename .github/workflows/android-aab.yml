@@ -42,11 +42,29 @@ jobs:
           pnpm_version: ${{ inputs.pnpm_version }}
 
 
-      - name: Inject Dynamic Environment Variables & Setup Firebase
+      - name: Fetch App Configuration
         env:
           BUILD_ID: ${{ inputs.build_id }}
           SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
         run: |
+          API_URL=$(echo "$SECRETS_JSON" | jq -r '.EXPO_PUBLIC_API_URL // empty')
+          if [ -z "$API_URL" ]; then
+            echo "❌ EXPO_PUBLIC_API_URL not found in secrets."
+            exit 1
+          fi
+          echo "📡 Fetching config from ${API_URL}/mobile-app/builds/${BUILD_ID}/config"
+          curl -s "${API_URL}/mobile-app/builds/${BUILD_ID}/config" > app_config.json
+        working-directory: app
+
+      - name: Download App Assets & Inject Dynamic Environment Variables
+        env:
+          BUILD_ID: ${{ inputs.build_id }}
+          SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
+
+        run: |
+          echo "⬇️ Downloading app assets from Google Drive..."
+          ./scripts/setup-assets.sh
+
           echo "💉 Injecting dynamic environment variables into JS bundle..."
           for var in EXPO_PUBLIC_APP_ID EXPO_PUBLIC_API_URL; do
             VALUE=$(echo "$SECRETS_JSON" | jq -r ".$var // empty")
@@ -60,11 +78,11 @@ jobs:
 
           # 0. Setup App Info (Dynamic Package ID & App Name)
           echo "📱 Setting up App Info..."
-          curl -s https://raw.githubusercontent.com/appnatively/workflows/master/scripts/setup-app-info.sh | bash
+          ./scripts/setup-app-info.sh
 
           # 0. Setup Firebase (fetch and run from workflows repo)
           echo "🔥 Setting up Firebase..."
-          curl -s https://raw.githubusercontent.com/appnatively/workflows/master/scripts/setup-firebase.sh | bash
+          ./scripts/setup-firebase.sh
         working-directory: app
 
 
