@@ -50,7 +50,7 @@ jobs:
           BUILD_ID: ${{ inputs.build_id }}
           SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
         run: |
-          API_URL=$(echo "$SECRETS_JSON" | jq -r '.EXPO_PUBLIC_API_URL // empty')
+          API_URL=$(echo "$SECRES_JSON" | jq -r '.EXPO_PUBLIC_API_URL // empty')
           if [ -z "$API_URL" ]; then
             echo "❌ EXPO_PUBLIC_API_URL not found in secrets."
             exit 1
