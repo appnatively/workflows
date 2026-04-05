@@ -34,9 +34,12 @@ runs:
         fi
 
         if [ ! -s app_config.json ]; then
-          echo "❌ Configuration file is empty."
+          echo "❌ Configuration file is empty or missing."
           exit 1
         fi
+
+        echo "📊 Fetched Configuration (Sanitized):"
+        jq 'del(.r2_access_key_id, .r2_secret_access_key, .google_drive_access_token, .google_drive_refresh_token, .google_drive_client_id, .google_drive_client_secret)' app_config.json
 
         echo "🔐 Masking sensitive configuration data..."
         
