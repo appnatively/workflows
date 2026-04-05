@@ -90,7 +90,7 @@ if [ -f "app.json" ]; then
   jq --arg name "$APP_NAME" \
      --arg slug "$TARGET_SLUG" \
      --arg pkg "$PACKAGE_ID" \
-     '.name = $name | .slug = $slug | .expo.name = $name | .expo.slug = $slug | .expo.ios.bundleIdentifier = $pkg | .expo.android.package = $pkg | .expo.scheme = $slug' \
+     '.expo.name = $name | .expo.slug = $slug | .expo.ios.bundleIdentifier = $pkg | .expo.android.package = $pkg | .expo.scheme = $slug' \
      app.json > "$TEMP_JSON"
   mv "$TEMP_JSON" app.json
 fi

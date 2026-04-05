@@ -74,10 +74,12 @@ jobs:
 
           echo "💉 Injecting dynamic environment variables into JS bundle..."
           echo "✅ Injecting EXPO_PUBLIC_APP_ID=${APP_ID}"
-          sed -i "s|__PLACEHOLDER_EXPO_PUBLIC_APP_ID__|${APP_ID}|g" android/app/src/main/assets/index.android.bundle
+          sed -i.bak "s|__PLACEHOLDER_EXPO_PUBLIC_APP_ID__|${APP_ID}|g" android/app/src/main/assets/index.android.bundle \
+            && rm android/app/src/main/assets/index.android.bundle.bak
           
           echo "✅ Injecting EXPO_PUBLIC_API_URL=${API_URL}"
-          sed -i "s|__PLACEHOLDER_EXPO_PUBLIC_API_URL__|${API_URL}|g" android/app/src/main/assets/index.android.bundle
+          sed -i.bak "s|__PLACEHOLDER_EXPO_PUBLIC_API_URL__|${API_URL}|g" android/app/src/main/assets/index.android.bundle \
+            && rm android/app/src/main/assets/index.android.bundle.bak
 
           # 0. Setup App Info (Dynamic Package ID & App Name)
           echo "📱 Setting up App Info..."
