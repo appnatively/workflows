@@ -28,7 +28,7 @@ runs:
         fi
         
         echo "📡 Fetching build configuration..."
-        if ! curl -sf -H "Authorization: Bearer ${BUILD_TOKEN}" "${API_URL}/api/builds/${BUILD_ID}/config" -o app_config.json; then
+        if ! curl -sf -H "Authorization: Bearer ${BUILD_TOKEN}" "${API_URL}/builds/${BUILD_ID}/config" -o app_config.json; then
           echo "❌ Failed to fetch configuration from API."
           exit 1
         fi
