@@ -135,7 +135,9 @@ if [ -d "android" ]; then
   if [ -d "$SOURCE_DIR" ]; then
     echo "  - Updating package declarations in Kotlin files..."
     # Find all .kt files and update their package declaration
-    find "$SOURCE_DIR" -maxdepth 1 -name "*.kt" -exec sed -i "s|package $OLD_PACKAGE_ID|package $PACKAGE_ID|g" {} +
+    find "$SOURCE_DIR" -maxdepth 1 -name "*.kt" | while read -r file; do
+      sed_safe "s|package $OLD_PACKAGE_ID|package $PACKAGE_ID|g" "$file"
+    done
 
     echo "  - Moving Kotlin files to new package structure: $TARGET_DIR"
     mkdir -p "$TARGET_DIR"
