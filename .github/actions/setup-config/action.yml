@@ -1,0 +1,56 @@
+name: 'Setup Build Configuration'
+description: 'Fetches build-specific configuration and R2 storage credentials from the AppNatively API'
+
+inputs:
+  api_url:
+    description: 'The backend bootstrap URL'
+    required: true
+  build_id:
+    description: 'The current build ID'
+    required: true
+  build_access_token:
+    description: 'The raw build access token for authentication'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Fetch Configuration from API
+      shell: bash
+      working-directory: app
+      env:
+        BUILD_ID: ${{ inputs.build_id }}
+        API_URL: ${{ inputs.api_url }}
+        BUILD_TOKEN: ${{ inputs.build_access_token }}
+      run: |
+        if [ -z "$BUILD_TOKEN" ]; then
+          echo "❌ BUILD_ACCESS_TOKEN is missing."
+          exit 1
+        fi
+        echo "📡 Fetching config from ${API_URL}/api/builds/${BUILD_ID}/config"
+        curl -s -H "Authorization: Bearer ${BUILD_TOKEN}" "${API_URL}/api/builds/${BUILD_ID}/config" > app_config.json
+        
+        if [ ! -s app_config.json ]; then
+            echo "❌ Failed to fetch config or file is empty"
+            exit 1
+        fi
+
+    - name: Security Hardening: Runtime Secret Masking
+      shell: bash
+      working-directory: app
+      run: |
+        # We must explicitly use the ::add-mask:: command to prevent them from appearing in plain text in the logs.
+        
+        echo "🔐 Masking sensitive configuration data..."
+        
+        # 1. R2 Credentials
+        echo "::add-mask::$(jq -r '.r2_access_key_id // empty' app_config.json)"
+        echo "::add-mask::$(jq -r '.r2_secret_access_key // empty' app_config.json)"
+        
+        # 2. Google Drive Credentials
+        echo "::add-mask::$(jq -r '.google_drive_access_token // empty' app_config.json)"
+        echo "::add-mask::$(jq -r '.google_drive_refresh_token // empty' app_config.json)"
+        echo "::add-mask::$(jq -r '.google_drive_client_id // empty' app_config.json)"
+        echo "::add-mask::$(jq -r '.google_drive_client_secret // empty' app_config.json)"
+        
+        echo "✅ Runtime masking complete."

@@ -9,19 +9,6 @@ if [ -z "$BUILD_ID" ]; then
   exit 1
 fi
 
-if [ -z "$SECRETS_JSON" ]; then
-  echo "❌ SECRETS_JSON not found in environment."
-  exit 1
-fi
-
-# Extract Google Drive access token for API requests
-ACCESS_TOKEN=$(echo "$SECRETS_JSON" | jq -r ".GOOGLE_DRIVE_ACCESS_TOKEN // empty")
-
-if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" == "null" ]; then
-  echo "⚠️ GOOGLE_DRIVE_ACCESS_TOKEN not found in secrets. Skipping asset download."
-  exit 0
-fi
-
 # Configuration must be provided by the preceding 'Fetch App Configuration' workflow step
 if [ ! -f "app_config.json" ]; then
   echo "❌ app_config.json not found. The 'Fetch App Configuration' step must run before this script."
@@ -31,23 +18,28 @@ fi
 echo "📖 Loading build configuration..."
 CONFIG_RESPONSE=$(cat app_config.json)
 
+# Extract Google Drive access token for API requests from the fetched configuration
+# This ensures we always use a fresh token provided by the backend
+ACCESS_TOKEN=$(echo "$CONFIG_RESPONSE" | jq -r ".google_drive_access_token // empty")
+
 # Mapping of backend configuration keys to local project file paths
-ASSET_KEYS="asset_icon asset_splash asset_adaptive_foreground asset_adaptive_background asset_adaptive_monochrome"
+ASSET_KEYS="asset_icon_id asset_splash_id asset_adaptive_foreground_id asset_adaptive_background_id asset_adaptive_monochrome_id"
 
 # Process each defined asset type
 for KEY in $ASSET_KEYS; do
   # Determine the destination path based on the key
   case "$KEY" in
-    "asset_icon") DEST="assets/images/icon.png" ;;
-    "asset_splash") DEST="assets/images/splash-icon.png" ;;
-    "asset_adaptive_foreground") DEST="assets/images/android-icon-foreground.png" ;;
-    "asset_adaptive_background") DEST="assets/images/android-icon-background.png" ;;
-    "asset_adaptive_monochrome") DEST="assets/images/android-icon-monochrome.png" ;;
+    "asset_icon_id") DEST="assets/images/icon.png" ;;
+    "asset_splash_id") DEST="assets/images/splash-icon.png" ;;
+    "asset_adaptive_foreground_id") DEST="assets/images/android-icon-foreground.png" ;;
+    "asset_adaptive_background_id") DEST="assets/images/android-icon-background.png" ;;
+    "asset_adaptive_monochrome_id") DEST="assets/images/android-icon-monochrome.png" ;;
     *) continue ;;
   esac
 
   # Extract the asset value (JSON string or plain ID) from the configuration response
-  ASSET_VALUE=$(echo "$CONFIG_RESPONSE" | jq -r ".data.$KEY // empty")
+  # New flat structure: jq -r ".$KEY"
+  ASSET_VALUE=$(echo "$CONFIG_RESPONSE" | jq -r ".$KEY // empty")
   
   if [ -z "$ASSET_VALUE" ] || [ "$ASSET_VALUE" == "null" ]; then
     echo "⚠️ $KEY not found in configuration, skipping..."
@@ -55,13 +47,7 @@ for KEY in $ASSET_KEYS; do
   fi
   
   # Determine the Google Drive File ID. 
-  # Backend currently saves this as a JSON string: {"id": "...", "mimeType": "..."}
-  if echo "$ASSET_VALUE" | jq -e . >/dev/null 2>&1; then
-    FILE_ID=$(echo "$ASSET_VALUE" | jq -r ".id // empty")
-  else
-    # Fallback for plain string IDs if ever encountered
-    FILE_ID="$ASSET_VALUE"
-  fi
+  FILE_ID="$ASSET_VALUE"
 
   if [ -z "$FILE_ID" ] || [ "$FILE_ID" == "null" ]; then
     echo "⚠️ Valid File ID for $KEY not found in configuration, skipping..."

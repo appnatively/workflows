@@ -45,7 +45,7 @@ async function syncAssets() {
     try {
       console.log(`  - Generating ${path.basename(destPath)} (${width}x${height})...`);
       
-      // Senior Engineer Note: Remove existing .webp versions to avoid "Duplicate resources" error in Android merger
+      // Remove existing .webp versions to avoid "Duplicate resources" error in Android merger
       if (destPath.endsWith('.png')) {
         const webpPath = destPath.replace(/\.png$/, '.webp');
         if (fs.existsSync(webpPath)) {

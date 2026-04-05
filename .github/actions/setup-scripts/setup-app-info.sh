@@ -20,16 +20,26 @@ if [ -z "$PACKAGE_ID" ] || [ -z "$APP_NAME" ]; then
   echo "📖 Loading build configuration..."
   CONFIG_RESPONSE=$(cat app_config.json)
 
-  # Extract branding details from the configuration response
-  PACKAGE_ID=$(echo "$CONFIG_RESPONSE" | jq -r '.data.package_id // empty')
-  APP_NAME=$(echo "$CONFIG_RESPONSE" | jq -r '.data.app_name // empty')
-  SLUG=$(echo "$CONFIG_RESPONSE" | jq -r '.data.slug // empty')
+  # 2. Secure & Correct Data Extraction
+  # 🔗 Corrected path: Removed the non-existent .data wrapper to align with the setup-config model.
+  # 🔐 Sanitization: Use sed to filter out potential injection characters from dynamic inputs.
+  
+  sanitize_input() {
+    echo "$1" | sed 's/[^a-zA-Z0-9 .-]//g'
+  }
 
-  if [ -z "$PACKAGE_ID" ] || [ -z "$APP_NAME" ]; then
+  RAW_PACKAGE_ID=$(echo "$CONFIG_RESPONSE" | jq -r '.package_id // empty')
+  RAW_APP_NAME=$(echo "$CONFIG_RESPONSE" | jq -r '.app_name // empty')
+  RAW_SLUG=$(echo "$CONFIG_RESPONSE" | jq -r '.slug // empty')
+
+  if [ -z "$RAW_PACKAGE_ID" ] || [ -z "$RAW_APP_NAME" ]; then
     echo "⚠️ package_id or app_name not found in configuration. Skipping updates."
-    echo "Response: $CONFIG_RESPONSE"
     exit 0
   fi
+
+  PACKAGE_ID=$(sanitize_input "$RAW_PACKAGE_ID")
+  APP_NAME=$(sanitize_input "$RAW_APP_NAME")
+  SLUG=$(sanitize_input "$RAW_SLUG")
 fi
 
 echo "✅ Target Package ID: $PACKAGE_ID"
@@ -45,6 +55,10 @@ OLD_IOS_NAME="AppNativelyApp"
 # --- 1. Calculate Safe Names ---
 # Alphanumeric only for iOS folder/project/scheme
 SAFE_APP_NAME=$(echo "$APP_NAME" | sed 's/[^a-zA-Z0-9]//g')
+
+# 🛡️ Resource Safety: Escape special XML characters in the App Name before native insertion
+XML_SAFE_APP_NAME=$(echo "$RAW_APP_NAME" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+
 echo "✅ Safe App Name (iOS): $SAFE_APP_NAME"
 # Save for workflow use
 echo "$SAFE_APP_NAME" > .ios_project_name
@@ -86,7 +100,7 @@ if [ -d "android" ]; then
   # strings.xml
   if [ -f "android/app/src/main/res/values/strings.xml" ]; then
     echo "  - Updating strings.xml"
-    sed_i "s/<string name=\"app_name\">$OLD_APP_NAME<\/string>/<string name=\"app_name\">$APP_NAME<\/string>/g" android/app/src/main/res/values/strings.xml
+    sed_i "s/<string name=\"app_name\">$OLD_APP_NAME<\/string>/<string name=\"app_name\">$XML_SAFE_APP_NAME<\/string>/g" android/app/src/main/res/values/strings.xml
   fi
 
   # settings.gradle
@@ -161,7 +175,7 @@ if [ -d "ios" ]; then
   # Info.plist
   if [ -f "$OLD_IOS_NAME/Info.plist" ]; then
     # CFBundleDisplayName
-    sed_i "s/<string>$OLD_APP_NAME<\/string>/<string>$APP_NAME<\/string>/g" "$OLD_IOS_NAME/Info.plist"
+    sed_i "s/<string>$OLD_APP_NAME<\/string>/<string>$XML_SAFE_APP_NAME<\/string>/g" "$OLD_IOS_NAME/Info.plist"
     # CFBundleURLSchemes (scheme and package id)
     sed_i "s/<string>$OLD_SCHEME<\/string>/<string>$TARGET_SLUG<\/string>/g" "$OLD_IOS_NAME/Info.plist"
     sed_i "s/<string>$OLD_PACKAGE_ID<\/string>/<string>$PACKAGE_ID<\/string>/g" "$OLD_IOS_NAME/Info.plist"

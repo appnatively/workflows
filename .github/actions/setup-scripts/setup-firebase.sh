@@ -17,10 +17,9 @@ fi
 echo "📖 Loading build configuration..."
 CONFIG_RESPONSE=$(cat app_config.json)
 
-# 3. Extract Firebase configurations from the response
-# These are stored as raw strings in the 'app_configs' table
-FIREBASE_ANDROID=$(echo "$CONFIG_RESPONSE" | jq -r '.data.firebase_android // empty')
-FIREBASE_IOS=$(echo "$CONFIG_RESPONSE" | jq -r '.data.firebase_ios // empty')
+# 3. Extract Firebase configurations from the response (Flat structure)
+FIREBASE_ANDROID=$(echo "$CONFIG_RESPONSE" | jq -r '.firebase_android // empty')
+FIREBASE_IOS=$(echo "$CONFIG_RESPONSE" | jq -r '.firebase_ios // empty')
 
 # 4. Inject Android Firebase configuration (google-services.json)
 if [ -n "$FIREBASE_ANDROID" ]; then

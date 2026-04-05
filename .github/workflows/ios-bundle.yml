@@ -14,12 +14,11 @@ on:
         required: false
         type: string
         default: '3.3'
-      pnpm_version:
-        required: false
+      api_url:
+        required: true
         type: string
-        default: '10'
     secrets:
-      APPNATIVELY_SECRETS:
+      BUILD_ACCESS_TOKEN:
         required: true
 
 
@@ -30,31 +29,24 @@ jobs:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
     steps:
+      - name: Setup Configuration
+        id: config
+        uses: appnatively/workflows/.github/actions/setup-config@master
+        with:
+          api_url: ${{ inputs.api_url }}
+          build_id: ${{ github.event.inputs.build_id || inputs.build_id }}
+          build_access_token: ${{ secrets.BUILD_ACCESS_TOKEN }}
+
       - name: Download from R2
         uses: appnatively/workflows/.github/actions/download-r2@master
 
       - name: Setup Scripts
         uses: appnatively/workflows/.github/actions/setup-scripts@master
 
-      - name: Fetch App Configuration
-        env:
-          BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
-          SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
-        run: |
-          API_URL=$(echo "$SECRETS_JSON" | jq -r '.EXPO_PUBLIC_API_URL // empty')
-          if [ -z "$API_URL" ]; then
-            echo "❌ EXPO_PUBLIC_API_URL not found in secrets."
-            exit 1
-          fi
-          echo "📡 Fetching config from ${API_URL}/mobile-app/builds/${BUILD_ID}/config"
-          curl -s "${API_URL}/mobile-app/builds/${BUILD_ID}/config" > app_config.json
-        working-directory: app
-
       - name: Setup App Info (Dynamic Package ID and App Name)
         run: ./scripts/setup-app-info.sh
         env:
           BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
-          API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
         working-directory: app
 
       - name: Get iOS Project Name
@@ -72,25 +64,24 @@ jobs:
           ios: true
           node_version: ${{ inputs.node_version }}
           ruby_version: ${{ inputs.ruby_version }}
-          pnpm_version: ${{ inputs.pnpm_version }}
 
       - name: Download App Assets & Inject Dynamic Environment Variables
         env:
           BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
-          SECRETS_JSON: ${{ secrets.APPNATIVELY_SECRETS }}
-
         run: |
           echo "⬇️ Downloading app assets from Google Drive..."
           ./scripts/setup-assets.sh
 
+          echo "📖 Discovering app configuration..."
+          API_URL=$(jq -r '.expo_public_api_url' app_config.json)
+          APP_ID=$(jq -r '.expo_public_app_id' app_config.json)
+
           echo "💉 Injecting dynamic environment variables into JS bundle..."
-          for var in EXPO_PUBLIC_APP_ID EXPO_PUBLIC_API_URL; do
-            VALUE=$(echo "$SECRETS_JSON" | jq -r ".$var // empty")
-            if [ -n "$VALUE" ]; then
-              echo "✅ Injecting $var"
-              sed -i.bak "s|__PLACEHOLDER_${var}__|${VALUE}|g" ios/main.jsbundle && rm ios/main.jsbundle.bak
-            fi
-          done
+          echo "✅ Injecting EXPO_PUBLIC_APP_ID=${APP_ID}"
+          sed -i.bak "s|__PLACEHOLDER_EXPO_PUBLIC_APP_ID__|${APP_ID}|g" ios/main.jsbundle && rm ios/main.jsbundle.bak
+          
+          echo "✅ Injecting EXPO_PUBLIC_API_URL=${API_URL}"
+          sed -i.bak "s|__PLACEHOLDER_EXPO_PUBLIC_API_URL__|${API_URL}|g" ios/main.jsbundle && rm ios/main.jsbundle.bak
 
           # 0. Setup Firebase (fetch and run from workflows repo)
           echo "🔥 Setting up Firebase..."
@@ -147,4 +138,11 @@ jobs:
         with:
           source: app-ios-archive.zip
           build_id: ${{ inputs.build_id }}
-          appnatively_secrets: ${{ secrets.APPNATIVELY_SECRETS }}
+
+      - name: Security Sanitization: Cleanup Configuration
+        if: always()
+        shell: bash
+        run: |
+          echo "🧹 Securely deleting configuration files..."
+          rm -f app/app_config.json || true
+          echo "✅ Sanitization complete."

@@ -8,9 +8,6 @@ inputs:
   build_id:
     description: 'The ID of the build'
     required: true
-  appnatively_secrets:
-    description: 'JSON string containing GOOGLE_DRIVE_CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN, and FOLDER_ID'
-    required: true
   pnpm_version:
     description: 'pnpm version'
     required: false
@@ -36,16 +33,15 @@ runs:
     - name: Upload to Google Drive (JS)
       shell: bash
       env:
-        APPNATIVELY_SECRETS: ${{ inputs.appnatively_secrets }}
         FILE_PATH: ${{ inputs.source }}
         BUILD_ID: ${{ inputs.build_id }}
       run: |
         cd ${{ github.action_path }}
         
-        # Install dependencies if not already present
+        # Install dependencies with locked version for security
         if [ ! -d "node_modules" ]; then
           pnpm init > /dev/null
-          pnpm add googleapis > /dev/null
+          pnpm add googleapis@171.4.0 > /dev/null
         fi
         
         # Run the script

@@ -1,21 +1,32 @@
 name: 'Setup Build Scripts'
-description: 'Makes build scripts available to the workflow'
+description: 'Makes the AppNatively build scripts available to the workflow'
 runs:
   using: 'composite'
   steps:
-    - name: Copy Scripts to Workspace
+    - name: Deploy Scripts to Workspace
       shell: bash
       run: |
-        # Copy to root scripts directory
-        mkdir -p scripts
-        cp ${{ github.action_path }}/*.sh scripts/ 2>/dev/null || true
-        cp ${{ github.action_path }}/*.js scripts/ 2>/dev/null || true
-        chmod +x scripts/*.sh 2>/dev/null || true
-
-        # Also copy to app/scripts if it exists, as many workflow steps run from there
+        # This ensures that if a required script is missing, the build fails with a clear log entry.
+        
+        DEPLOY_DIRS="scripts"
         if [ -d "app" ]; then
-          mkdir -p app/scripts
-          cp ${{ github.action_path }}/*.sh app/scripts/ 2>/dev/null || true
-          cp ${{ github.action_path }}/*.js app/scripts/ 2>/dev/null || true
-          chmod +x app/scripts/*.sh 2>/dev/null || true
+          DEPLOY_DIRS="$DEPLOY_DIRS app/scripts"
         fi
+
+        for DIR in $DEPLOY_DIRS; do
+          echo "📂 Deploying scripts to $DIR..."
+          mkdir -p "$DIR"
+          
+          # Explicitly copy required shell scripts
+          cp "${{ github.action_path }}/setup-app-info.sh" "$DIR/"
+          cp "${{ github.action_path }}/setup-assets.sh" "$DIR/"
+          cp "${{ github.action_path }}/setup-firebase.sh" "$DIR/"
+          
+          # Explicitly copy required Node.js helpers
+          cp "${{ github.action_path }}/sync-assets.js" "$DIR/"
+          
+          # Set execution permissions
+          chmod +x "$DIR"/*.sh
+        done
+        
+        echo "✅ Script deployment complete."

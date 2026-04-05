@@ -33,14 +33,12 @@ on:
         required: false
         type: string
         default: '3.3'
-      pnpm_version:
-        required: false
-        type: string
-        default: '10'
-    secrets:
-      APPNATIVELY_SECRETS:
+      api_url:
         required: true
-
+        type: string
+    secrets:
+      BUILD_ACCESS_TOKEN:
+        required: true
 
 jobs:
 
@@ -49,44 +47,45 @@ jobs:
     if: ${{ (inputs.platform == 'android' || inputs.platform == 'both') && (inputs.android_type == 'aab' || inputs.android_type == 'both') }}
     uses: appnatively/workflows/.github/workflows/android-aab.yml@master
     secrets:
-      APPNATIVELY_SECRETS: ${{ secrets.APPNATIVELY_SECRETS }}
+      BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
     with:
       build_id: ${{ inputs.build_id }}
       node_version: ${{ inputs.node_version }}
       java_version: ${{ inputs.java_version }}
-      pnpm_version: ${{ inputs.pnpm_version }}
+      api_url: ${{ inputs.api_url }}
 
   android-apk:
     name: Android APK
     if: ${{ (inputs.platform == 'android' || inputs.platform == 'both') && (inputs.android_type == 'apk' || inputs.android_type == 'both') }}
     uses: appnatively/workflows/.github/workflows/android-apk.yml@master
     secrets:
-      APPNATIVELY_SECRETS: ${{ secrets.APPNATIVELY_SECRETS }}
+      BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
     with:
       build_id: ${{ inputs.build_id }}
       node_version: ${{ inputs.node_version }}
       java_version: ${{ inputs.java_version }}
-      pnpm_version: ${{ inputs.pnpm_version }}
+      api_url: ${{ inputs.api_url }}
 
   ios-bundle:
     name: iOS Bundle
     if: ${{ (inputs.platform == 'ios' || inputs.platform == 'both') && (inputs.ios_type == 'bundle' || inputs.ios_type == 'both') }}
     uses: appnatively/workflows/.github/workflows/ios-bundle.yml@master
     secrets:
-      APPNATIVELY_SECRETS: ${{ secrets.APPNATIVELY_SECRETS }}
+      BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
     with:
       build_id: ${{ inputs.build_id }}
       node_version: ${{ inputs.node_version }}
       ruby_version: ${{ inputs.ruby_version }}
-      pnpm_version: ${{ inputs.pnpm_version }}
+      api_url: ${{ inputs.api_url }}
 
   ios-simulator:
     name: iOS Simulator
     if: ${{ (inputs.platform == 'ios' || inputs.platform == 'both') && (inputs.ios_type == 'simulator' || inputs.ios_type == 'both') }}
     uses: appnatively/workflows/.github/workflows/ios-simulator.yml@master
     secrets:
-      APPNATIVELY_SECRETS: ${{ secrets.APPNATIVELY_SECRETS }}
+      BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
     with:
       build_id: ${{ inputs.build_id }}
       node_version: ${{ inputs.node_version }}
       ruby_version: ${{ inputs.ruby_version }}
+      api_url: ${{ inputs.api_url }}
