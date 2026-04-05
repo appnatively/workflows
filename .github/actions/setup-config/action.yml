@@ -40,25 +40,6 @@ runs:
 
         echo "📊 Fetched Configuration (Sanitized):"
         jq 'del(.r2_access_key_id, .r2_secret_access_key, .google_drive_access_token, .google_drive_refresh_token, .google_drive_client_id, .google_drive_client_secret)' app_config.json
-
-        echo "🔐 Masking sensitive configuration data..."
-        
-        # Define keys to mask in a whitelist
-        # SENSITIVE_KEYS=(
-        #   "r2_access_key_id"
-        #   "r2_secret_access_key"
-        #   "google_drive_access_token"
-        #   "google_drive_refresh_token"
-        #   "google_drive_client_id"
-        #   "google_drive_client_secret"
-        # )
-
-        # for key in "${SENSITIVE_KEYS[@]}"; do
-        #   VALUE=$(jq -r ".$key // empty" app_config.json)
-        #   if [ -n "$VALUE" ] && [ "$VALUE" != "null" ]; then
-        #     echo "::add-mask::$VALUE"
-        #   fi
-        # done
         
         echo "✅ Configuration fetched and runtime masking complete."
 
