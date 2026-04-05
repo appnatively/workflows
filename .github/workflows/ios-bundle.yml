@@ -139,7 +139,7 @@ jobs:
           source: app-ios-archive.zip
           build_id: ${{ inputs.build_id }}
 
-      - name: Security Sanitization: Cleanup Configuration
+      - name: "Security Sanitization: Cleanup Configuration"
         if: always()
         shell: bash
         run: |
