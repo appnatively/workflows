@@ -17,7 +17,6 @@ runs:
   steps:
     - name: Fetch and Mask Configuration
       shell: bash
-      working-directory: app
       env:
         BUILD_ID: ${{ inputs.build_id }}
         API_URL: ${{ inputs.api_url }}
