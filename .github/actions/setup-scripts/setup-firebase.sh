@@ -9,13 +9,20 @@ if [ -z "$BUILD_ID" ]; then
 fi
 
 # Configuration must be provided by the preceding 'Fetch App Configuration' workflow step
-if [ ! -f "app_config.json" ]; then
-  echo "❌ app_config.json not found. The 'Fetch App Configuration' step must run before this script."
+# Look for app_config.json in current or parent directory
+CONFIG_PATH="app_config.json"
+if [ ! -f "$CONFIG_PATH" ] && [ -f "../app_config.json" ]; then
+  CONFIG_PATH="../app_config.json"
+fi
+
+if [ ! -f "$CONFIG_PATH" ]; then
+  echo "❌ app_config.json not found in $(pwd) or parent directory."
+  echo "   The 'Fetch App Configuration' step must run before this script."
   exit 1
 fi
 
-echo "📖 Loading build configuration..."
-CONFIG_RESPONSE=$(cat app_config.json)
+echo "📖 Loading build configuration from $CONFIG_PATH..."
+CONFIG_RESPONSE=$(cat "$CONFIG_PATH")
 
 # 3. Extract Firebase configurations from the response (Flat structure)
 FIREBASE_ANDROID=$(echo "$CONFIG_RESPONSE" | jq -r '.firebase_android // empty')

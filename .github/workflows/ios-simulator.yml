@@ -73,8 +73,8 @@ jobs:
           ./scripts/setup-assets.sh
 
           echo "📖 Discovering app configuration..."
-          API_URL=$(jq -r '.expo_public_api_url' app_config.json)
-          APP_ID=$(jq -r '.expo_public_app_id' app_config.json)
+          API_URL=$(jq -r '.expo_public_api_url' ../app_config.json)
+          APP_ID=$(jq -r '.expo_public_app_id' ../app_config.json)
 
           echo "💉 Injecting dynamic environment variables into JS bundle..."
           echo "✅ Injecting EXPO_PUBLIC_APP_ID=${APP_ID}"
@@ -154,5 +154,5 @@ jobs:
         shell: bash
         run: |
           echo "🧹 Securely deleting configuration files..."
-          rm -f app/app_config.json || true
+          rm -f app_config.json || true
           echo "✅ Sanitization complete."

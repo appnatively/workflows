@@ -8,7 +8,7 @@ const path = require('path');
  */
 function loadConfig() {
   const workspacePath = process.env.GITHUB_WORKSPACE || process.cwd();
-  const configPath = path.resolve(workspacePath, 'app/app_config.json');
+  const configPath = path.resolve(workspacePath, 'app_config.json');
 
   if (!fs.existsSync(configPath)) {
     throw new Error(`❌ Configuration file not found at ${configPath}`);

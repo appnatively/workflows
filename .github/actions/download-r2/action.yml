@@ -15,7 +15,7 @@ runs:
       run: |
         # This replaces brittle YAML inputs with a local config-first approach.
         
-        CONFIG_FILE="app/app_config.json"
+        CONFIG_FILE="app_config.json"
         
         if [ ! -f "$CONFIG_FILE" ]; then
           echo "❌ Configuration file not found at $CONFIG_FILE. Build bootstrap must run first."
