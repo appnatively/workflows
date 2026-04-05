@@ -15,7 +15,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Fetch Configuration from API
+    - name: Fetch and Mask Configuration
       shell: bash
       working-directory: app
       env:
@@ -27,30 +27,36 @@ runs:
           echo "❌ BUILD_ACCESS_TOKEN is missing."
           exit 1
         fi
-        echo "📡 Fetching config from ${API_URL}/api/builds/${BUILD_ID}/config"
-        curl -s -H "Authorization: Bearer ${BUILD_TOKEN}" "${API_URL}/api/builds/${BUILD_ID}/config" > app_config.json
         
-        if [ ! -s app_config.json ]; then
-            echo "❌ Failed to fetch config or file is empty"
-            exit 1
+        echo "📡 Fetching build configuration..."
+        if ! curl -sf -H "Authorization: Bearer ${BUILD_TOKEN}" "${API_URL}/api/builds/${BUILD_ID}/config" -o app_config.json; then
+          echo "❌ Failed to fetch configuration from API."
+          exit 1
         fi
 
-    - name: Security Hardening: Runtime Secret Masking
-      shell: bash
-      working-directory: app
-      run: |
-        # We must explicitly use the ::add-mask:: command to prevent them from appearing in plain text in the logs.
-        
+        if [ ! -s app_config.json ]; then
+          echo "❌ Configuration file is empty."
+          exit 1
+        fi
+
         echo "🔐 Masking sensitive configuration data..."
         
-        # 1. R2 Credentials
-        echo "::add-mask::$(jq -r '.r2_access_key_id // empty' app_config.json)"
-        echo "::add-mask::$(jq -r '.r2_secret_access_key // empty' app_config.json)"
+        # Define keys to mask in a whitelist
+        SENSITIVE_KEYS=(
+          "r2_access_key_id"
+          "r2_secret_access_key"
+          "google_drive_access_token"
+          "google_drive_refresh_token"
+          "google_drive_client_id"
+          "google_drive_client_secret"
+        )
+
+        for key in "${SENSITIVE_KEYS[@]}"; do
+          VALUE=$(jq -r ".$key // empty" app_config.json)
+          if [ -n "$VALUE" ] && [ "$VALUE" != "null" ]; then
+            echo "::add-mask::$VALUE"
+          fi
+        done
         
-        # 2. Google Drive Credentials
-        echo "::add-mask::$(jq -r '.google_drive_access_token // empty' app_config.json)"
-        echo "::add-mask::$(jq -r '.google_drive_refresh_token // empty' app_config.json)"
-        echo "::add-mask::$(jq -r '.google_drive_client_id // empty' app_config.json)"
-        echo "::add-mask::$(jq -r '.google_drive_client_secret // empty' app_config.json)"
-        
-        echo "✅ Runtime masking complete."
+        echo "✅ Configuration fetched and runtime masking complete."
+

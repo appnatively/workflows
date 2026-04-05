@@ -21,9 +21,7 @@ if [ -z "$PACKAGE_ID" ] || [ -z "$APP_NAME" ]; then
   CONFIG_RESPONSE=$(cat app_config.json)
 
   # 2. Secure & Correct Data Extraction
-  # 🔗 Corrected path: Removed the non-existent .data wrapper to align with the setup-config model.
-  # 🔐 Sanitization: Use sed to filter out potential injection characters from dynamic inputs.
-  
+  # 🔐 Sanitization: Allow alphanumeric, spaces, dots, and hyphens. Filter out shell/sed metacharacters.
   sanitize_input() {
     echo "$1" | sed 's/[^a-zA-Z0-9 .-]//g'
   }
@@ -46,6 +44,7 @@ echo "✅ Target Package ID: $PACKAGE_ID"
 echo "✅ Target App Name: $APP_NAME"
 echo "✅ Target Slug: $SLUG"
 
+# Constants for the base template (must match the source repository state)
 OLD_PACKAGE_ID="com.appnatively.appnatively"
 OLD_APP_NAME="AppNatively App"
 OLD_SLUG="appnatively-app"
@@ -63,27 +62,30 @@ echo "✅ Safe App Name (iOS): $SAFE_APP_NAME"
 # Save for workflow use
 echo "$SAFE_APP_NAME" > .ios_project_name
 
-# Helper for macOS sed compatibility
-sed_i() {
+# Helper for macOS/Linux sed compatibility (using '|' as delimiter for safety)
+sed_safe() {
+  local pattern="$1"
+  local file="$2"
   if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i '' "$1" "$2"
+    sed -i '' "$pattern" "$file"
   else
-    sed -i "$1" "$2"
+    sed -i "$pattern" "$file"
   fi
 }
 
-# --- 2. Update app.json ---
+# --- 2. Update app.json (Using jq for Native JSON Manipulation) ---
 if [ -f "app.json" ]; then
-  echo "📝 Updating app.json..."
-  sed_i "s/\"name\": \"$OLD_APP_NAME\"/\"name\": \"$APP_NAME\"/g" app.json
+  echo "📝 Updating app.json with jq..."
+  TARGET_SLUG="${SLUG:-$APP_NAME}"
   
-  # Use SLUG if provided, otherwise fallback to APP_NAME
-  TARGET_SLUG=${SLUG:-$APP_NAME}
-  sed_i "s/\"slug\": \"$OLD_SLUG\"/\"slug\": \"$TARGET_SLUG\"/g" app.json
-  sed_i "s/\"bundleIdentifier\": \"$OLD_PACKAGE_ID\"/\"bundleIdentifier\": \"$PACKAGE_ID\"/g" app.json
-  sed_i "s/\"package\": \"$OLD_PACKAGE_ID\"/\"package\": \"$PACKAGE_ID\"/g" app.json
-  # Update scheme
-  sed_i "s/\"scheme\": \"$OLD_SCHEME\"/\"scheme\": \"$TARGET_SLUG\"/g" app.json
+  # Atomically update app.json
+  TEMP_JSON=$(mktemp)
+  jq --arg name "$APP_NAME" \
+     --arg slug "$TARGET_SLUG" \
+     --arg pkg "$PACKAGE_ID" \
+     '.name = $name | .slug = $slug | .expo.name = $name | .expo.slug = $slug | .expo.ios.bundleIdentifier = $pkg | .expo.android.package = $pkg | .expo.scheme = $slug' \
+     app.json > "$TEMP_JSON"
+  mv "$TEMP_JSON" app.json
 fi
 
 # --- 3. Android Updates ---
@@ -93,48 +95,46 @@ if [ -d "android" ]; then
   # build.gradle
   if [ -f "android/app/build.gradle" ]; then
     echo "  - Updating build.gradle"
-    sed_i "s/namespace '$OLD_PACKAGE_ID'/namespace '$PACKAGE_ID'/g" android/app/build.gradle
-    sed_i "s/applicationId '$OLD_PACKAGE_ID'/applicationId '$PACKAGE_ID'/g" android/app/build.gradle
+    sed_safe "s|namespace '$OLD_PACKAGE_ID'|namespace '$PACKAGE_ID'|g" android/app/build.gradle
+    sed_safe "s|applicationId '$OLD_PACKAGE_ID'|applicationId '$PACKAGE_ID'|g" android/app/build.gradle
   fi
 
   # strings.xml
   if [ -f "android/app/src/main/res/values/strings.xml" ]; then
     echo "  - Updating strings.xml"
-    sed_i "s/<string name=\"app_name\">$OLD_APP_NAME<\/string>/<string name=\"app_name\">$XML_SAFE_APP_NAME<\/string>/g" android/app/src/main/res/values/strings.xml
+    # Note: Using different delimiter '|' to prevent issues if XML_SAFE_APP_NAME contains slashes
+    sed_safe "s|<string name=\"app_name\">$OLD_APP_NAME</string>|<string name=\"app_name\">$XML_SAFE_APP_NAME</string>|g" android/app/src/main/res/values/strings.xml
   fi
 
   # settings.gradle
   if [ -f "android/settings.gradle" ]; then
     echo "  - Updating settings.gradle"
-    sed_i "s/rootProject.name = '$OLD_APP_NAME'/rootProject.name = '$APP_NAME'/g" android/settings.gradle
+    sed_safe "s|rootProject.name = '$OLD_APP_NAME'|rootProject.name = '$APP_NAME'|g" android/settings.gradle
   fi
 
   # AndroidManifest.xml (Deep link scheme)
   if [ -f "android/app/src/main/AndroidManifest.xml" ]; then
     echo "  - Updating AndroidManifest scheme"
-    sed_i "s/android:scheme=\"$OLD_SCHEME\"/android:scheme=\"$TARGET_SLUG\"/g" android/app/src/main/AndroidManifest.xml
+    sed_safe "s|android:scheme=\"$OLD_SCHEME\"|android:scheme=\"$TARGET_SLUG\"|g" android/app/src/main/AndroidManifest.xml
   fi
 
   # Kotlin Files & Package Structure
-  OLD_PACKAGE_PATH=$(echo $OLD_PACKAGE_ID | tr '.' '/')
-  NEW_PACKAGE_PATH=$(echo $PACKAGE_ID | tr '.' '/')
+  OLD_PACKAGE_PATH=$(echo "$OLD_PACKAGE_ID" | tr '.' '/')
+  NEW_PACKAGE_PATH=$(echo "$PACKAGE_ID" | tr '.' '/')
   
   SOURCE_DIR="android/app/src/main/java/$OLD_PACKAGE_PATH"
   TARGET_DIR="android/app/src/main/java/$NEW_PACKAGE_PATH"
 
   if [ -d "$SOURCE_DIR" ]; then
     echo "  - Updating package declarations in Kotlin files..."
-    for file in "$SOURCE_DIR"/*.kt; do
-      if [ -f "$file" ]; then
-        sed_i "s/package $OLD_PACKAGE_ID/package $PACKAGE_ID/g" "$file"
-      fi
-    done
+    # Find all .kt files and update their package declaration
+    find "$SOURCE_DIR" -maxdepth 1 -name "*.kt" -exec sed -i "s|package $OLD_PACKAGE_ID|package $PACKAGE_ID|g" {} +
 
     echo "  - Moving Kotlin files to new package structure: $TARGET_DIR"
     mkdir -p "$TARGET_DIR"
     mv "$SOURCE_DIR"/* "$TARGET_DIR/"
     
-    # Clean up old directory if empty
+    # Clean up old directory structure if empty
     rmdir -p "$SOURCE_DIR" 2>/dev/null || true
   fi
 fi
@@ -143,72 +143,58 @@ fi
 if [ -d "ios" ]; then
   echo "🍎 Updating iOS project..."
   
-  cd ios
+  # Avoid double-running if already renamed
+  if [ ! -d "ios/$OLD_IOS_NAME" ] && [ ! -d "ios/$SAFE_APP_NAME" ]; then
+     echo "❌ iOS project structure in an unexpected state. Base template folder '$OLD_IOS_NAME' not found."
+     exit 1
+  else
+    # 4.1 Update Internal Data First (Using Old Paths)
+    echo "  - Updating internal data in project files..."
+    
+    # Podfile
+    if [ -f "ios/Podfile" ]; then
+      sed_safe "s|target '$OLD_IOS_NAME'|target '$SAFE_APP_NAME'|g" ios/Podfile
+    fi
 
-  # 4.1 Update Internal Data First (Using Old Paths)
-  echo "  - Updating internal data in project files..."
-  
-  # Podfile
-  if [ -f "Podfile" ]; then
-    sed_i "s/target '$OLD_IOS_NAME'/target '$SAFE_APP_NAME'/g" Podfile
-  fi
+    # Workspace
+    if [ -f "ios/$OLD_IOS_NAME.xcworkspace/contents.xcworkspacedata" ]; then
+      sed_safe "s|$OLD_IOS_NAME.xcodeproj|$SAFE_APP_NAME.xcodeproj|g" "ios/$OLD_IOS_NAME.xcworkspace/contents.xcworkspacedata"
+    fi
 
-  # Workspace
-  if [ -f "$OLD_IOS_NAME.xcworkspace/contents.xcworkspacedata" ]; then
-    sed_i "s/$OLD_IOS_NAME.xcodeproj/$SAFE_APP_NAME.xcodeproj/g" "$OLD_IOS_NAME.xcworkspace/contents.xcworkspacedata"
-  fi
+    # project.pbxproj
+    if [ -f "ios/$OLD_IOS_NAME.xcodeproj/project.pbxproj" ]; then
+      sed_safe "s|$OLD_IOS_NAME|$SAFE_APP_NAME|g" "ios/$OLD_IOS_NAME.xcodeproj/project.pbxproj"
+      # Update bundle ID and product name
+      sed_safe "s|PRODUCT_BUNDLE_IDENTIFIER = $OLD_PACKAGE_ID|PRODUCT_BUNDLE_IDENTIFIER = $PACKAGE_ID|g" "ios/$OLD_IOS_NAME.xcodeproj/project.pbxproj"
+      sed_safe "s|PRODUCT_NAME = $OLD_APP_NAME|PRODUCT_NAME = $APP_NAME|g" "ios/$OLD_IOS_NAME.xcodeproj/project.pbxproj"
+    fi
 
-  # project.pbxproj
-  if [ -f "$OLD_IOS_NAME.xcodeproj/project.pbxproj" ]; then
-    sed_i "s/$OLD_IOS_NAME/$SAFE_APP_NAME/g" "$OLD_IOS_NAME.xcodeproj/project.pbxproj"
-    # Update bundle ID and product name
-    sed_i "s/PRODUCT_BUNDLE_IDENTIFIER = $OLD_PACKAGE_ID/PRODUCT_BUNDLE_IDENTIFIER = $PACKAGE_ID/g" "$OLD_IOS_NAME.xcodeproj/project.pbxproj"
-    sed_i "s/PRODUCT_NAME = $OLD_APP_NAME/PRODUCT_NAME = $APP_NAME/g" "$OLD_IOS_NAME.xcodeproj/project.pbxproj"
-  fi
+    # Scheme
+    SCHEME_PATH="ios/$OLD_IOS_NAME.xcodeproj/xcshareddata/xcschemes/$OLD_IOS_NAME.xcscheme"
+    if [ -f "$SCHEME_PATH" ]; then
+      sed_safe "s|$OLD_IOS_NAME|$SAFE_APP_NAME|g" "$SCHEME_PATH"
+    fi
 
-  # Scheme
-  SCHEME_PATH="$OLD_IOS_NAME.xcodeproj/xcshareddata/xcschemes/$OLD_IOS_NAME.xcscheme"
-  if [ -f "$SCHEME_PATH" ]; then
-    sed_i "s/$OLD_IOS_NAME/$SAFE_APP_NAME/g" "$SCHEME_PATH"
-  fi
+    # Info.plist
+    if [ -f "ios/$OLD_IOS_NAME/Info.plist" ]; then
+      sed_safe "s|<string>$OLD_APP_NAME</string>|<string>$XML_SAFE_APP_NAME</string>|g" "ios/$OLD_IOS_NAME/Info.plist"
+      sed_safe "s|<string>$OLD_SCHEME</string>|<string>$TARGET_SLUG</string>|g" "ios/$OLD_IOS_NAME/Info.plist"
+      sed_safe "s|<string>$OLD_PACKAGE_ID</string>|<string>$PACKAGE_ID</string>|g" "ios/$OLD_IOS_NAME/Info.plist"
+    fi
 
-  # Info.plist
-  if [ -f "$OLD_IOS_NAME/Info.plist" ]; then
-    # CFBundleDisplayName
-    sed_i "s/<string>$OLD_APP_NAME<\/string>/<string>$XML_SAFE_APP_NAME<\/string>/g" "$OLD_IOS_NAME/Info.plist"
-    # CFBundleURLSchemes (scheme and package id)
-    sed_i "s/<string>$OLD_SCHEME<\/string>/<string>$TARGET_SLUG<\/string>/g" "$OLD_IOS_NAME/Info.plist"
-    sed_i "s/<string>$OLD_PACKAGE_ID<\/string>/<string>$PACKAGE_ID<\/string>/g" "$OLD_IOS_NAME/Info.plist"
-  fi
+    # 4.2 Rename Folders and Project Files (Now that data is updated)
+    echo "  - Renaming project folders and files to $SAFE_APP_NAME..."
+    
+    # Rename internal files synchronously
+    [ -f "ios/$OLD_IOS_NAME/$OLD_IOS_NAME.entitlements" ] && mv "ios/$OLD_IOS_NAME/$OLD_IOS_NAME.entitlements" "ios/$OLD_IOS_NAME/$SAFE_APP_NAME.entitlements"
+    [ -f "ios/$OLD_IOS_NAME/$OLD_IOS_NAME-Bridging-Header.h" ] && mv "ios/$OLD_IOS_NAME/$OLD_IOS_NAME-Bridging-Header.h" "ios/$OLD_IOS_NAME/$SAFE_APP_NAME-Bridging-Header.h"
+    [ -f "$SCHEME_PATH" ] && mv "$SCHEME_PATH" "ios/$OLD_IOS_NAME.xcodeproj/xcshareddata/xcschemes/$SAFE_APP_NAME.xcscheme"
 
-  # 4.2 Rename Folders and Project Files (Now that data is updated)
-  echo "  - Renaming project folders and files to $SAFE_APP_NAME..."
-  
-  # Rename internal files that contain the old app name in their filename
-  if [ -f "$OLD_IOS_NAME/$OLD_IOS_NAME.entitlements" ]; then
-    mv "$OLD_IOS_NAME/$OLD_IOS_NAME.entitlements" "$OLD_IOS_NAME/$SAFE_APP_NAME.entitlements"
+    # Rename main project folders and workspace
+    [ -d "ios/$OLD_IOS_NAME" ] && mv "ios/$OLD_IOS_NAME" "ios/$SAFE_APP_NAME"
+    [ -d "ios/$OLD_IOS_NAME.xcodeproj" ] && mv "ios/$OLD_IOS_NAME.xcodeproj" "ios/$SAFE_APP_NAME.xcodeproj"
+    [ -d "ios/$OLD_IOS_NAME.xcworkspace" ] && mv "ios/$OLD_IOS_NAME.xcworkspace" "ios/$SAFE_APP_NAME.xcworkspace"
   fi
-  if [ -f "$OLD_IOS_NAME/$OLD_IOS_NAME-Bridging-Header.h" ]; then
-    mv "$OLD_IOS_NAME/$OLD_IOS_NAME-Bridging-Header.h" "$OLD_IOS_NAME/$SAFE_APP_NAME-Bridging-Header.h"
-  fi
-
-  # Rename scheme file first
-  if [ -f "$SCHEME_PATH" ]; then
-    mv "$SCHEME_PATH" "$OLD_IOS_NAME.xcodeproj/xcshareddata/xcschemes/$SAFE_APP_NAME.xcscheme"
-  fi
-
-  # Rename main project folders and workspace
-  if [ -d "$OLD_IOS_NAME" ]; then
-    mv "$OLD_IOS_NAME" "$SAFE_APP_NAME"
-  fi
-  if [ -d "$OLD_IOS_NAME.xcodeproj" ]; then
-    mv "$OLD_IOS_NAME.xcodeproj" "$SAFE_APP_NAME.xcodeproj"
-  fi
-  if [ -d "$OLD_IOS_NAME.xcworkspace" ]; then
-    mv "$OLD_IOS_NAME.xcworkspace" "$SAFE_APP_NAME.xcworkspace"
-  fi
-
-  cd ../..
 fi
 
 echo "🎉 App Info dynamic setup complete."
