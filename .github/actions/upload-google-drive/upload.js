@@ -23,7 +23,7 @@ function loadConfig() {
       'google_drive_client_id',
       'google_drive_client_secret',
       'google_drive_refresh_token',
-      'google_drive_folder_id'
+      'app_id'
     ];
     
     const missing = required.filter(key => !config[key]);
@@ -142,8 +142,13 @@ async function main() {
 
     const filePath = path.isAbsolute(rawFilePath) ? rawFilePath : path.resolve(workspacePath, rawFilePath);
 
-    // 1. Ensure Folder Structure: builds/ -> :buildId/
-    const buildsFolderId = await findOrCreateFolder(drive, 'builds', config.google_drive_folder_id);
+    const appId = config.app_id;
+
+    // 1. Ensure Folder Structure: AppNatively/ -> :appId/ -> builds/ -> :buildId/
+    const rootFolderName = 'AppNatively';
+    const appNativelyFolderId = await findOrCreateFolder(drive, rootFolderName, 'root');
+    const appIdFolderId = await findOrCreateFolder(drive, appId, appNativelyFolderId);
+    const buildsFolderId = await findOrCreateFolder(drive, 'builds', appIdFolderId);
     const targetFolderId = await findOrCreateFolder(drive, buildId, buildsFolderId);
 
     // 2. Perform Upload
