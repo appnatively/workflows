@@ -47,7 +47,7 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.ios }}" == "true" ]; then
-          pnpm install --frozen-lockfile --prefer-offline --filter "./app" --filter "./native-components"
+          pnpm install --frozen-lockfile --prefer-offline --filter "./app" --filter "./sdk"
         elif [ "${{ inputs.android }}" == "true" ]; then
           pnpm install --frozen-lockfile --prefer-offline --filter "./app"
         else
