@@ -20,15 +20,15 @@ runs:
       env:
         BUILD_ID: ${{ inputs.build_id }}
         API_URL: ${{ inputs.api_url }}
-        BUILD_TOKEN: ${{ inputs.build_access_token }}
+        BUILD_ACCESS_TOKEN: ${{ inputs.build_access_token }}
       run: |
-        if [ -z "$BUILD_TOKEN" ]; then
+        if [ -z "$BUILD_ACCESS_TOKEN" ]; then
           echo "❌ BUILD_ACCESS_TOKEN is missing."
           exit 1
         fi
         
         echo "📡 Fetching build configuration..."
-        if ! curl -sf -H "Authorization: Bearer ${BUILD_TOKEN}" "${API_URL}/builds/${BUILD_ID}/config" -o app_config.json; then
+        if ! curl -sf -H "Authorization: Bearer ${BUILD_ACCESS_TOKEN}" "${API_URL}/builds/${BUILD_ID}/config" -o app_config.json; then
           echo "❌ Failed to fetch configuration from API."
           exit 1
         fi
