@@ -139,12 +139,14 @@ if [ -d "android" ]; then
       sed_safe "s|package $OLD_PACKAGE_ID|package $PACKAGE_ID|g" "$file"
     done
 
-    echo "  - Moving Kotlin files to new package structure: $TARGET_DIR"
-    mkdir -p "$TARGET_DIR"
-    mv "$SOURCE_DIR"/* "$TARGET_DIR/"
-    
-    # Clean up old directory structure if empty
-    rmdir -p "$SOURCE_DIR" 2>/dev/null || true
+    if [ "$SOURCE_DIR" != "$TARGET_DIR" ]; then
+      echo "  - Moving Kotlin files to new package structure: $TARGET_DIR"
+      mkdir -p "$TARGET_DIR"
+      mv "$SOURCE_DIR"/* "$TARGET_DIR/"
+      
+      # Clean up old directory structure if empty
+      rmdir -p "$SOURCE_DIR" 2>/dev/null || true
+    fi
   fi
 fi
 
@@ -192,17 +194,19 @@ if [ -d "ios" ]; then
     fi
 
     # 4.2 Rename Folders and Project Files (Now that data is updated)
-    echo "  - Renaming project folders and files to $SAFE_APP_NAME..."
-    
-    # Rename internal files synchronously
-    [ -f "ios/$OLD_IOS_NAME/$OLD_IOS_NAME.entitlements" ] && mv "ios/$OLD_IOS_NAME/$OLD_IOS_NAME.entitlements" "ios/$OLD_IOS_NAME/$SAFE_APP_NAME.entitlements"
-    [ -f "ios/$OLD_IOS_NAME/$OLD_IOS_NAME-Bridging-Header.h" ] && mv "ios/$OLD_IOS_NAME/$OLD_IOS_NAME-Bridging-Header.h" "ios/$OLD_IOS_NAME/$SAFE_APP_NAME-Bridging-Header.h"
-    [ -f "$SCHEME_PATH" ] && mv "$SCHEME_PATH" "ios/$OLD_IOS_NAME.xcodeproj/xcshareddata/xcschemes/$SAFE_APP_NAME.xcscheme"
+    if [ "$OLD_IOS_NAME" != "$SAFE_APP_NAME" ]; then
+      echo "  - Renaming project folders and files to $SAFE_APP_NAME..."
+      
+      # Rename internal files synchronously
+      [ -f "ios/$OLD_IOS_NAME/$OLD_IOS_NAME.entitlements" ] && mv "ios/$OLD_IOS_NAME/$OLD_IOS_NAME.entitlements" "ios/$OLD_IOS_NAME/$SAFE_APP_NAME.entitlements"
+      [ -f "ios/$OLD_IOS_NAME/$OLD_IOS_NAME-Bridging-Header.h" ] && mv "ios/$OLD_IOS_NAME/$OLD_IOS_NAME-Bridging-Header.h" "ios/$OLD_IOS_NAME/$SAFE_APP_NAME-Bridging-Header.h"
+      [ -f "$SCHEME_PATH" ] && mv "$SCHEME_PATH" "ios/$OLD_IOS_NAME.xcodeproj/xcshareddata/xcschemes/$SAFE_APP_NAME.xcscheme"
 
-    # Rename main project folders and workspace
-    [ -d "ios/$OLD_IOS_NAME" ] && mv "ios/$OLD_IOS_NAME" "ios/$SAFE_APP_NAME"
-    [ -d "ios/$OLD_IOS_NAME.xcodeproj" ] && mv "ios/$OLD_IOS_NAME.xcodeproj" "ios/$SAFE_APP_NAME.xcodeproj"
-    [ -d "ios/$OLD_IOS_NAME.xcworkspace" ] && mv "ios/$OLD_IOS_NAME.xcworkspace" "ios/$SAFE_APP_NAME.xcworkspace"
+      # Rename main project folders and workspace
+      [ -d "ios/$OLD_IOS_NAME" ] && mv "ios/$OLD_IOS_NAME" "ios/$SAFE_APP_NAME"
+      [ -d "ios/$OLD_IOS_NAME.xcodeproj" ] && mv "ios/$OLD_IOS_NAME.xcodeproj" "ios/$SAFE_APP_NAME.xcodeproj"
+      [ -d "ios/$OLD_IOS_NAME.xcworkspace" ] && mv "ios/$OLD_IOS_NAME.xcworkspace" "ios/$SAFE_APP_NAME.xcworkspace"
+    fi
   fi
 fi
 
