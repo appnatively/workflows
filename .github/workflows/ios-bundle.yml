@@ -29,6 +29,10 @@ jobs:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
     steps:
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode_26.app
+        shell: bash
+
       - name: Setup Configuration
         id: config
         uses: appnatively/workflows/.github/actions/setup-config@master

@@ -80,19 +80,16 @@ sed_safe() {
   fi
 }
 
-# --- 2. Update app.json (Using jq for Native JSON Manipulation) ---
-if [ -f "app.json" ]; then
-  echo "📝 Updating app.json with jq..."
+# --- 2. Update app.config.ts ---
+if [ -f "app.config.ts" ]; then
+  echo "📝 Updating app.config.ts with sed..."
   TARGET_SLUG="${SLUG:-$APP_NAME}"
   
-  # Atomically update app.json
-  TEMP_JSON=$(mktemp)
-  jq --arg name "$APP_NAME" \
-     --arg slug "$TARGET_SLUG" \
-     --arg pkg "$PACKAGE_ID" \
-     '.expo.name = $name | .expo.slug = $slug | .expo.ios.bundleIdentifier = $pkg | .expo.android.package = $pkg | .expo.scheme = $slug' \
-     app.json > "$TEMP_JSON"
-  mv "$TEMP_JSON" app.json
+  sed_safe "s|name: \"$OLD_APP_NAME\"|name: \"$APP_NAME\"|g" app.config.ts
+  sed_safe "s|slug: \"$OLD_SLUG\"|slug: \"$TARGET_SLUG\"|g" app.config.ts
+  sed_safe "s|bundleIdentifier: \"$OLD_PACKAGE_ID\"|bundleIdentifier: \"$PACKAGE_ID\"|g" app.config.ts
+  sed_safe "s|package: \"$OLD_PACKAGE_ID\"|package: \"$PACKAGE_ID\"|g" app.config.ts
+  sed_safe "s|scheme: \"$OLD_SCHEME\"|scheme: \"$TARGET_SLUG\"|g" app.config.ts
 fi
 
 # --- 3. Android Updates ---

@@ -1,12 +1,6 @@
 name: 'Download from Cloudflare R2'
 description: 'Downloads a zip archive from Cloudflare R2 and extracts it into the workspace'
 
-inputs:
-  file_name:
-    description: 'The name of the zip file to download'
-    required: false
-    default: 'release-assets.zip'
-
 runs:
   using: "composite"
   steps:
@@ -34,19 +28,26 @@ runs:
           echo "❌ Missing required R2 credentials in $CONFIG_FILE."
           exit 1
         fi
+
+        # Determine the file name based on app_type (default to 'app')
+        RAW_APP_TYPE=$(jq -r '.app_type // empty' "$CONFIG_FILE")
+        APP_TYPE="${RAW_APP_TYPE:-app}"
+        FILE_NAME="release-assets-${APP_TYPE}.zip"
+        
+        echo "🎯 Target file name: ${FILE_NAME}"
         
         ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-        REMOTE_PATH="releases/${SOURCE_VERSION}/${{ inputs.file_name }}"
+        REMOTE_PATH="releases/${SOURCE_VERSION}/${FILE_NAME}"
         
         echo "⬇️ Downloading ${REMOTE_PATH} from R2..."
         
         aws s3 cp \
           --endpoint-url ${ENDPOINT} \
           s3://${R2_BUCKET}/${REMOTE_PATH} \
-          ${{ inputs.file_name }}
+          ${FILE_NAME}
 
-        echo "📦 Extracting archive..."
-        unzip -qo ${{ inputs.file_name }}
-        rm ${{ inputs.file_name }}
+        echo "📦 Extracting archive ${FILE_NAME}..."
+        unzip -qo ${FILE_NAME}
+        rm ${FILE_NAME}
         
         echo "✅ R2 Asset Synchronization Complete."
