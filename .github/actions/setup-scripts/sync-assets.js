@@ -8,16 +8,23 @@ const IOS_PROJECT_NAME_FILE = path.join(PROJECT_ROOT, '.ios_project_name');
 async function syncAssets() {
   console.log('🔄 Starting Native Asset Synchronization...');
 
-  const appJsonPath = path.join(PROJECT_ROOT, 'app.json');
-  if (!fs.existsSync(appJsonPath)) {
-    console.error('❌ app.json not found in ' + PROJECT_ROOT);
+  // 1. Load Configuration Context
+  const appConfigTsPath = path.join(PROJECT_ROOT, 'app.config.ts');
+
+  if (fs.existsSync(appConfigTsPath)) {
+    console.log('📝 Found app.config.ts. Syncing with standardized asset paths...');
+  } else {
+    console.error('❌ app.config.ts not found. Syncing failed. Exiting...');
     process.exit(1);
   }
 
-  const appJson = JSON.parse(fs.readFileSync(appJsonPath, 'utf8'));
-  const expoConfig = appJson.expo || {};
+  // We use the empty expoConfig object because our standardized paths match the default fallbacks
+  // icon: ./assets/images/icon.png
+  // splash: ./assets/images/splash-icon.png
+  // adaptive foreground: ./assets/images/android-icon-foreground.png
+  let expoConfig = {};
 
-  // 1. Determine iOS Project Name
+  // 2. Determine iOS Project Name
   let iosProjectName = 'AppNativelyApp';
   if (fs.existsSync(IOS_PROJECT_NAME_FILE)) {
     iosProjectName = fs.readFileSync(IOS_PROJECT_NAME_FILE, 'utf8').trim();
