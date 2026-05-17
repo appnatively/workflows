@@ -20,7 +20,7 @@ runs:
 
     - name: Expo Prebuild
       shell: bash
-      run: bash ${{ github.action_path }}/prebuild.sh
+      run: bash ./scripts/prebuild-android.sh
       working-directory: app
 
     - name: Disable JS Bundling Tasks in build.gradle
