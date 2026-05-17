@@ -46,11 +46,21 @@ jobs:
       - name: Setup Scripts
         uses: appnatively/workflows/.github/actions/setup-scripts@master
 
-
-      - name: Setup App Info (Dynamic Package ID and App Name)
-        run: ./scripts/setup-app-info.sh
+      - name: Download App Assets & Setup App Info
         env:
           BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
+        run: |
+          echo "⬇️ Downloading app assets from Google Drive..."
+          ./scripts/setup-assets.sh
+
+          # 0. Setup App Info (Dynamic Package ID and App Name)
+          echo "📱 Setting up App Info..."
+          ./scripts/setup-app-info.sh
+
+          # 0. Setup Firebase (fetch and run from workflows repo)
+          echo "🔥 Setting up Firebase..."
+          ./scripts/setup-firebase.sh
+        shell: bash
         working-directory: app
 
       - name: Get iOS Project Name
@@ -68,26 +78,6 @@ jobs:
           ios: true
           node_version: ${{ inputs.node_version }}
           ruby_version: ${{ inputs.ruby_version }}
-
-      - name: Download App Assets & Inject Dynamic Environment Variables
-        env:
-          BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
-        run: |
-          echo "⬇️ Downloading app assets from Google Drive..."
-          ./scripts/setup-assets.sh
-
-          echo "📖 Discovering app configuration..."
-          API_URL=$(jq -r '.expo_public_api_url' ../app_config.json)
-          APP_ID=$(jq -r '.expo_public_app_id' ../app_config.json)
-
-          echo "💉 Injecting dynamic environment variables into JS bundle..."
-          echo "✅ Injecting EXPO_PUBLIC_APP_ID=${APP_ID}"
-          sed -i.bak "s|__PLACEHOLDER_EXPO_PUBLIC_APP_ID__|${APP_ID}|g" ios/main.jsbundle && rm ios/main.jsbundle.bak
-          
-          echo "✅ Injecting EXPO_PUBLIC_API_URL=${API_URL}"
-          sed -i.bak "s|__PLACEHOLDER_EXPO_PUBLIC_API_URL__|${API_URL}|g" ios/main.jsbundle && rm ios/main.jsbundle.bak
-        shell: bash
-        working-directory: app
 
       - name: Build Simulator App
         run: |
