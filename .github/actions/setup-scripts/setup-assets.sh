@@ -76,14 +76,5 @@ for KEY in $ASSET_KEYS; do
   fi
 done
 
-# --- Native Asset Synchronization ---
-echo "🔄 Syncing assets to native project folders..."
-if [ -f "scripts/sync-assets.js" ]; then
-  node scripts/sync-assets.js
-elif [ -f "./sync-assets.js" ]; then
-  node ./sync-assets.js
-else
-  echo "⚠️ sync-assets.js not found, skipping native sync."
-fi
-
-
+# Asset setup complete (source assets are now successfully downloaded and placed inside assets/images)
+echo "✅ Asset setup completed."

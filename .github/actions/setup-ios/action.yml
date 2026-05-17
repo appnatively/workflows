@@ -7,6 +7,11 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Expo Prebuild
+      shell: bash
+      run: bash ${{ github.action_path }}/prebuild.sh
+      working-directory: app
+
     - name: Cache Pods
       uses: actions/cache@v5
       with:

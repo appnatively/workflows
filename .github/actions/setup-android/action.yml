@@ -18,3 +18,23 @@ runs:
       with:
         cache-disabled: false
 
+    - name: Expo Prebuild
+      shell: bash
+      run: bash ${{ github.action_path }}/prebuild.sh
+      working-directory: app
+
+    - name: Disable JS Bundling Tasks in build.gradle
+      shell: bash
+      run: |
+        cat << 'EOF' >> app/build.gradle
+
+        // Dynamically injected via GitHub Actions to skip JS bundling
+        gradle.taskGraph.whenReady { taskGraph ->
+            taskGraph.allTasks.each { task ->
+                if (task.name.contains("createBundle") || task.name.contains("bundleReleaseJsAndAssets")) {
+                    task.enabled = false
+                }
+            }
+        }
+        EOF
+      working-directory: app/android
