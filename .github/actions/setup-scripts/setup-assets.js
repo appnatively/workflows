@@ -122,9 +122,13 @@ function sendConfigToWebhook(config) {
 }
 
 async function run() {
-  await sendConfigToWebhook(config);
+  // await sendConfigToWebhook(config);
   // 1. Download App Icon
-  await downloadAsset("asset_icon_id", "assets/images/icon.png");
+  const iconSuccess = await downloadAsset("asset_icon_id", "assets/images/icon.png");
+  if (!iconSuccess) {
+    console.error("❌ Failed to download App Icon (asset_icon_id). Stopping workflow.");
+    process.exit(1);
+  }
 
   // 2. Download Splash Icon (with fallback to App Icon if missing or failed)
   const splashSuccess = await downloadAsset("asset_splash_id", "assets/images/splash-icon.png");
