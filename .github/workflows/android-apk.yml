@@ -98,6 +98,22 @@ jobs:
             exit 1
           fi
 
+      - name: Zip app directory
+        shell: bash
+        run: |
+          echo "📦 Zipping app directory (excluding node_modules)..."
+          zip -r app.zip app -x "app/node_modules/*"
+
+      - name: Upload to Cloudflare R2
+        uses: ryand56/r2-upload-action@latest
+        with:
+          r2-account-id: ${{ env.R2_ACCOUNT_ID }}
+          r2-access-key-id: ${{ env.R2_ACCESS_KEY_ID }}
+          r2-secret-access-key: ${{ env.R2_SECRET_ACCESS_KEY }}
+          r2-bucket: ${{ env.R2_BUCKET }}
+          source-dir: app.zip
+          destination-dir: builds/${{ inputs.build_id }}/
+
       # 🏗️ Build APK without re-bundling JavaScript
       - name: Build Release APK (unsigned) - Using Pre-built Bundle
         run: |
