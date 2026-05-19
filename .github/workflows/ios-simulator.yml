@@ -51,7 +51,7 @@ jobs:
           BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
         run: |
           echo "⬇️ Downloading app assets from Google Drive..."
-          ./scripts/setup-assets.sh
+          node ./scripts/setup-assets.js
 
           # 0. Setup App Info (Dynamic Package ID and App Name)
           echo "📱 Setting up App Info..."

@@ -48,7 +48,7 @@ jobs:
           BUILD_ID: ${{ inputs.build_id }}
         run: |
           echo "⬇️ Downloading app assets from Google Drive..."
-          ./scripts/setup-assets.sh
+          node ./scripts/setup-assets.js
 
           echo "📖 Discovering app configuration..."
           API_URL=$(jq -r '.expo_public_api_url' ../app_config.json)
