@@ -83,6 +83,9 @@ jobs:
           android: true
           node_version: ${{ inputs.node_version }}
           java_version: ${{ inputs.java_version }}
+          build_id: ${{ inputs.build_id }}
+          build_access_token: ${{ secrets.BUILD_ACCESS_TOKEN }}
+          api_url: ${{ inputs.api_url }}
 
       - name: Build Release AAB (unsigned)
         run: |

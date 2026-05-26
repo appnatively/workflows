@@ -26,6 +26,15 @@ inputs:
     description: 'pnpm version'
     required: false
     default: '10'
+  build_id:
+    description: 'Build ID'
+    required: false
+  build_access_token:
+    description: 'Build Access Token'
+    required: false
+  api_url:
+    description: 'API URL for the backend'
+    required: false
 
 runs:
   using: "composite"
@@ -67,5 +76,8 @@ runs:
       uses: appnatively/workflows/.github/actions/setup-android@master
       with:
         java_version: ${{ inputs.java_version }}
+        build_id: ${{ inputs.build_id }}
+        build_access_token: ${{ inputs.build_access_token }}
+        api_url: ${{ inputs.api_url }}
 
 
