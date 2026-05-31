@@ -19,13 +19,13 @@ if (!apiUrl || !token) {
 const { config } = loadAppConfig();
 
 // Check if iOS custom signing config exists
-const hasCertificate = config.ios_certificate_file_id && config.ios_certificate_file_id.length > 0;
-const hasProvisioningProfile = config.ios_provisioning_profile_file_id && config.ios_provisioning_profile_file_id.length > 0;
+// const hasCertificate = config.ios_certificate_file_id && config.ios_certificate_file_id.length > 0;
+// const hasProvisioningProfile = config.ios_provisioning_profile_file_id && config.ios_provisioning_profile_file_id.length > 0;
 
-if (!hasCertificate || !hasProvisioningProfile) {
-  log.warn("⚠️ iOS custom signing credentials are NOT configured for this app. Skipping code signing setup.");
-  process.exit(0);
-}
+// if (!hasCertificate || !hasProvisioningProfile) {
+//   log.warn("⚠️ iOS custom signing credentials are NOT configured for this app. Skipping code signing setup.");
+//   process.exit(0);
+// }
 
 // Helper to make authorized GET requests
 async function makeGetRequest(urlPath, isBinary = false) {
