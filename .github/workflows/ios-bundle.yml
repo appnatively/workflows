@@ -128,7 +128,7 @@ jobs:
             ${{ runner.os }}-pods-
 
       - name: Install Build Formatter
-        run: gem install xcbeautify --no-document
+        run: brew install xcbeautify
         shell: bash
 
       - name: Verify Pods Folder
