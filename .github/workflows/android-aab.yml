@@ -46,35 +46,22 @@ jobs:
       - name: Download App Assets & Setup App Info
         env:
           BUILD_ID: ${{ inputs.build_id }}
+          API_URL: ${{ inputs.api_url }}
+          BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
         run: |
           echo "⬇️ Downloading app assets from Google Drive..."
           node ./scripts/setup-assets.js
 
-          echo "📖 Discovering app configuration..."
-          API_URL=$(jq -r '.expo_public_api_url' ../app_config.json)
-          APP_ID=$(jq -r '.expo_public_app_id' ../app_config.json)
-          SOCKET_URL=$(jq -r '.expo_public_socket_url' ../app_config.json)
-
           echo "💉 Injecting dynamic environment variables into JS bundle..."
-          echo "✅ Injecting EXPO_PUBLIC_APP_ID=${APP_ID}"
-          sed -i.bak "s|__PLACEHOLDER_EXPO_PUBLIC_APP_ID__|${APP_ID}|g" android/app/src/main/assets/index.android.bundle \
-            && rm android/app/src/main/assets/index.android.bundle.bak
-          
-          echo "✅ Injecting EXPO_PUBLIC_API_URL=${API_URL}"
-          sed -i.bak "s|__PLACEHOLDER_EXPO_PUBLIC_API_URL__|${API_URL}|g" android/app/src/main/assets/index.android.bundle \
-            && rm android/app/src/main/assets/index.android.bundle.bak
-            
-          echo "✅ Injecting EXPO_PUBLIC_SOCKET_URL=${SOCKET_URL}"
-          sed -i.bak "s|__PLACEHOLDER_EXPO_PUBLIC_SOCKET_URL__|${SOCKET_URL}|g" android/app/src/main/assets/index.android.bundle \
-            && rm android/app/src/main/assets/index.android.bundle.bak
+          node ./scripts/inject-env.js android/app/src/main/assets/index.android.bundle
 
           # 0. Setup App Info (Dynamic Package ID & App Name)
           echo "📱 Setting up App Info..."
-          ./scripts/setup-app-info.sh
+          node ./scripts/setup-app-info.js
 
           # 0. Setup Firebase (fetch and run from workflows repo)
           echo "🔥 Setting up Firebase..."
-          ./scripts/setup-firebase.sh
+          node ./scripts/setup-firebase.js
         working-directory: app
 
       - name: Setup Environment

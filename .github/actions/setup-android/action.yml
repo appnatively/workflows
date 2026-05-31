@@ -29,69 +29,17 @@ runs:
 
     - name: Expo Prebuild
       shell: bash
-      run: bash ./scripts/prebuild-android.sh
+      run: node ./scripts/prebuild-android.js
       working-directory: app
 
-    - name: Retrieve Keystore
+    - name: Configure Keystore & Signing
       shell: bash
-      run: |
-        echo "⬇️ Downloading keystore from API..."
-        response_code=$(curl -s -w "%{http_code}" -o android/app/release.jks \
-          -X GET "${{ inputs.api_url }}/builds/${{ inputs.build_id }}/keystore" \
-          -H "Authorization: Bearer ${{ inputs.build_access_token }}")
-        
-        if [ "$response_code" -eq 200 ]; then
-          echo "✅ Keystore successfully downloaded from API."
-        else
-          echo "❌ Failed to download keystore from API (HTTP status $response_code). Halting build."
-          exit 1
-        fi
+      env:
+        BUILD_ID: ${{ inputs.build_id }}
+        API_URL: ${{ inputs.api_url }}
+        BUILD_ACCESS_TOKEN: ${{ inputs.build_access_token }}
+      run: node ./scripts/setup-keystore.js
       working-directory: app
-
-    - name: Configure Signing in build.gradle
-      shell: bash
-      run: |
-        node -e '
-        const fs = require("fs");
-        const file = "app/build.gradle";
-        let content = fs.readFileSync(file, "utf8");
-
-        // 1. Idempotency Check (skips cleanly if release config already injected)
-        if (content.includes("signingConfigs.release")) {
-          console.log("Signing configurations already applied. Skipping dynamic setup.");
-          process.exit(0);
-        }
-
-        // 2. Add release config in signingConfigs
-        const signingConfigsRegex = /signingConfigs\s*\{([\s\S]*?debug\s*\{[\s\S]*?\}\s*)\}/;
-        if (!signingConfigsRegex.test(content)) {
-          console.error("Error: Could not locate signingConfigs.debug block in build.gradle");
-          process.exit(1);
-        }
-        content = content.replace(signingConfigsRegex, (match, debugBlock) => {
-          return `signingConfigs {${debugBlock}    release {
-                    storeFile file("release.jks")
-                    storePassword "myStrongPassword123"
-                    keyAlias "my-key-alias"
-                    keyPassword "myStrongPassword123"
-                }
-            }`;
-        });
-
-        // 3. Update release signingConfig
-        const releaseSigningConfigRegex = /buildTypes\s*\{([\s\S]*?release\s*\{([\s\S]*?))signingConfig\s+signingConfigs\.debug/;
-        if (!releaseSigningConfigRegex.test(content)) {
-          console.error("Error: Could not locate release signingConfig under buildTypes in build.gradle");
-          process.exit(1);
-        }
-        content = content.replace(releaseSigningConfigRegex, (match, before) => {
-          return `buildTypes {${before}signingConfig signingConfigs.release`;
-        });
-
-        fs.writeFileSync(file, content, "utf8");
-        console.log("Successfully injected signing configurations.");
-        '
-      working-directory: app/android
 
     - name: Disable JS Bundling Tasks in build.gradle
       shell: bash

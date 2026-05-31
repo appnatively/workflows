@@ -6,27 +6,25 @@ runs:
     - name: Deploy Scripts to Workspace
       shell: bash
       run: |
-        # This ensures that if a required script is missing, the build fails with a clear log entry.
+        # # This ensures that if a required script is missing, the build fails with a clear log entry.
         
-        DEPLOY_DIRS="scripts"
-        if [ -d "app" ]; then
-          DEPLOY_DIRS="$DEPLOY_DIRS app/scripts"
-        fi
+        # DEPLOY_DIRS="scripts"
+        # if [ -d "app" ]; then
+        #   DEPLOY_DIRS="$DEPLOY_DIRS app/scripts"
+        # fi
 
-        for DIR in $DEPLOY_DIRS; do
-          echo "📂 Deploying scripts to $DIR..."
-          mkdir -p "$DIR"
+        # for DIR in $DEPLOY_DIRS; do
+        #   echo "📂 Deploying scripts to $DIR..."
+        #   mkdir -p "$DIR"
           
-          # Explicitly copy required shell and Node scripts
-          cp "${{ github.action_path }}/setup-app-info.sh" "$DIR/"
-          cp "${{ github.action_path }}/setup-assets.js" "$DIR/"
-          cp "${{ github.action_path }}/setup-firebase.sh" "$DIR/"
-          cp "${{ github.action_path }}/prebuild-android.sh" "$DIR/"
-          cp "${{ github.action_path }}/prebuild-ios.sh" "$DIR/"
-          
-          
-          # Set execution permissions
-          chmod +x "$DIR"/*.sh
-        done
+        #   # Explicitly copy required Node scripts
+        #   cp "${{ github.action_path }}/setup-app-info.js" "$DIR/"
+        #   cp "${{ github.action_path }}/setup-assets.js" "$DIR/"
+        #   cp "${{ github.action_path }}/setup-firebase.js" "$DIR/"
+        #   cp "${{ github.action_path }}/setup-keystore.js" "$DIR/"
+        #   cp "${{ github.action_path }}/prebuild-android.js" "$DIR/"
+        #   cp "${{ github.action_path }}/prebuild-ios.js" "$DIR/"
+        #   cp "${{ github.action_path }}/inject-env.js" "$DIR/"
+        # done
         
         echo "✅ Script deployment complete."

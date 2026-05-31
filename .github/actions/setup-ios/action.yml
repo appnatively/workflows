@@ -9,7 +9,7 @@ runs:
   steps:
     - name: Expo Prebuild
       shell: bash
-      run: bash ./scripts/prebuild-ios.sh
+      run: node ./scripts/prebuild-ios.js
       working-directory: app
 
     - name: Cache Pods
