@@ -151,7 +151,8 @@ jobs:
             DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
             CODE_SIGN_IDENTITY="$IOS_CODE_SIGN_IDENTITY" \
             PROVISIONING_PROFILE_SPECIFIER="$IOS_PROVISIONING_PROFILE_UUID" \
-            PROVISIONING_PROFILE="$IOS_PROVISIONING_PROFILE_UUID" | xcbeautify
+            PROVISIONING_PROFILE="$IOS_PROVISIONING_PROFILE_UUID" \
+            PRODUCT_BUNDLE_IDENTIFIER="$IOS_BUNDLE_ID" | xcbeautify
         working-directory: app/ios
 
       - name: Inject Pre-built JS and Zip Archive
@@ -161,6 +162,14 @@ jobs:
 
           cp main.jsbundle "$APP_PATH/"
           if [ -d "assets" ]; then cp -R assets "$APP_PATH/"; fi
+
+          echo "🔐 Resealing code signature after resource injection..."
+          codesign --force \
+            --sign "$IOS_CODE_SIGN_IDENTITY" \
+            --keychain "$IOS_KEYCHAIN_PATH" \
+            --timestamp \
+            --options=runtime \
+            "$APP_PATH"
 
           zip -r ../../app-ios-archive.zip build/${{ steps.ios-name.outputs.name }}.xcarchive
         working-directory: app/ios
