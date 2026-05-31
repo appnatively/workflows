@@ -176,25 +176,24 @@ jobs:
         run: |
           if [ -n "$IOS_PROVISIONING_PROFILE_UUID" ]; then
             echo "📦 Generating SIGNED IPA..."
-            cat <<EOF > ExportOptions.plist
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>method</key>
-    <string>${IOS_DISTRIBUTION_METHOD:-app-store}</string>
-    <key>teamID</key>
-    <string>${IOS_TEAM_ID}</string>
-    <key>signingStyle</key>
-    <string>manual</string>
-    <key>provisioningProfiles</key>
-    <dict>
-        <key>${IOS_BUNDLE_ID}</key>
-        <string>${IOS_PROVISIONING_PROFILE_UUID}</string>
-    </dict>
-</dict>
-</plist>
-EOF
+            echo '<?xml version="1.0" encoding="UTF-8"?>' > ExportOptions.plist
+            echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> ExportOptions.plist
+            echo '<plist version="1.0">' >> ExportOptions.plist
+            echo '<dict>' >> ExportOptions.plist
+            echo '    <key>method</key>' >> ExportOptions.plist
+            echo "    <string>${IOS_DISTRIBUTION_METHOD:-app-store}</string>" >> ExportOptions.plist
+            echo '    <key>teamID</key>' >> ExportOptions.plist
+            echo "    <string>${IOS_TEAM_ID}</string>" >> ExportOptions.plist
+            echo '    <key>signingStyle</key>' >> ExportOptions.plist
+            echo '    <string>manual</string>' >> ExportOptions.plist
+            echo '    <key>provisioningProfiles</key>' >> ExportOptions.plist
+            echo '    <dict>' >> ExportOptions.plist
+            echo "        <key>${IOS_BUNDLE_ID}</key>" >> ExportOptions.plist
+            echo "        <string>${IOS_PROVISIONING_PROFILE_UUID}</string>" >> ExportOptions.plist
+            echo '    </dict>' >> ExportOptions.plist
+            echo '</dict>' >> ExportOptions.plist
+            echo '</plist>' >> ExportOptions.plist
+
             xcodebuild -exportArchive \
               -archivePath build/${{ steps.ios-name.outputs.name }}.xcarchive \
               -exportPath build \
