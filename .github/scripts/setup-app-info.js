@@ -1,40 +1,18 @@
 const fs = require('fs');
-const path = require('path');
+const { loadAppConfig, sanitizeString, log, fail } = require('./utils');
 
-console.log(`🚀 Setting up dynamic App Info (Package ID, App Name, Version & Slug) in ${process.cwd()}...`);
+log.step(`Setting up dynamic App Info (Package ID, App Name, Version & Slug) in ${process.cwd()}...`);
 
 // 1. Ensure required configuration exists in app_config.json
-let configPath = 'app_config.json';
-if (!fs.existsSync(configPath) && fs.existsSync('../app_config.json')) {
-  configPath = '../app_config.json';
-}
-
-if (!fs.existsSync(configPath)) {
-  console.error("❌ Error: app_config.json not found.");
-  process.exit(1);
-}
-
-let config;
-try {
-  config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-} catch (err) {
-  console.error("❌ Error: Failed to parse app_config.json:", err.message);
-  process.exit(1);
-}
+const { config, configPath } = loadAppConfig();
 
 // Extract keys matching the original jq pass: package_id, app_name, app_slug, app_version
 const { package_id, app_name, app_slug, app_version } = config;
 
-// Clean up values (keep only safe characters)
-const sanitize = (val, regex) => {
-  if (val === null || val === undefined) return '';
-  return String(val).replace(regex, '');
-};
-
-const packageIdClean = sanitize(package_id, /[^a-zA-Z0-9._-]/g);
-const appNameClean = sanitize(app_name, /[^a-zA-Z0-9 ._-]/g);
-const slugClean = sanitize(app_slug, /[^a-zA-Z0-9._-]/g);
-const appVersionClean = sanitize(app_version, /[^a-zA-Z0-9._-]/g);
+const packageIdClean = sanitizeString(package_id, /[^a-zA-Z0-9._-]/g);
+const appNameClean = sanitizeString(app_name, /[^a-zA-Z0-9 ._-]/g);
+const slugClean = sanitizeString(app_slug, /[^a-zA-Z0-9._-]/g);
+const appVersionClean = sanitizeString(app_version, /[^a-zA-Z0-9._-]/g);
 
 // Enforce that all items are present and valid after sanitization
 const variables = {
@@ -46,20 +24,19 @@ const variables = {
 
 for (const [key, val] of Object.entries(variables)) {
   if (!val || val === 'null') {
-    console.error(`❌ Error: Required configuration key '${key}' is missing, empty, or null in ${configPath}.`);
-    process.exit(1);
+    fail(`Required configuration key '${key}' is missing, empty, or null in ${configPath}.`);
   }
 }
 
-console.log(`✅ Target Package ID: ${variables.PACKAGE_ID}`);
-console.log(`✅ Target App Name: ${variables.APP_NAME}`);
-console.log(`✅ Target Slug: ${variables.SLUG}`);
-console.log(`✅ Target App Version: ${variables.APP_VERSION}`);
+log.success(`Target Package ID: ${variables.PACKAGE_ID}`);
+log.success(`Target App Name: ${variables.APP_NAME}`);
+log.success(`Target Slug: ${variables.SLUG}`);
+log.success(`Target App Version: ${variables.APP_VERSION}`);
 
 // --- 2. Update app.config.ts ---
 const appConfigPath = 'app.config.ts';
 if (fs.existsSync(appConfigPath) && fs.lstatSync(appConfigPath).isFile()) {
-  console.log("📝 Updating app.config.ts with clean regex replacements...");
+  log.info("Updating app.config.ts with clean regex replacements...");
   
   let content = fs.readFileSync(appConfigPath, 'utf8');
   
@@ -73,4 +50,4 @@ if (fs.existsSync(appConfigPath) && fs.lstatSync(appConfigPath).isFile()) {
   fs.writeFileSync(appConfigPath, content, 'utf8');
 }
 
-console.log("🎉 App Info dynamic setup complete.");
+log.success("App Info dynamic setup complete.");

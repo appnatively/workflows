@@ -1,33 +1,15 @@
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { runCommand, log, fail } = require('./utils');
 
 // Define directories
 const ANDROID_DIR = 'android';
 const BUILD_GRADLE = path.join(ANDROID_DIR, 'app', 'build.gradle');
 const TEMP_ASSETS = `temp-assets-${process.pid}`;
 
-// Ensure dummy google-services.json exists for Expo prebuild
+// Ensure google-services.json exists for Expo prebuild
 if (!fs.existsSync('google-services.json')) {
-  console.log("🔥 Creating dummy google-services.json for Expo prebuild...");
-  const dummyGoogleServices = {
-    project_info: {
-      project_number: "1",
-      project_id: "d"
-    },
-    client: [
-      {
-        client_info: {
-          mobilesdk_app_id: "1:1:android:1",
-          android_client_info: {
-            package_name: "com.d"
-          }
-        }
-      }
-    ],
-    configuration_version: "1"
-  };
-  fs.writeFileSync('google-services.json', JSON.stringify(dummyGoogleServices, null, 2), 'utf8');
+  fail("Required Firebase configuration file 'google-services.json' is missing. Firebase setup must run and succeed first.");
 }
 
 const androidExists = fs.existsSync(ANDROID_DIR) && fs.lstatSync(ANDROID_DIR).isDirectory();
@@ -36,8 +18,8 @@ const gradleExists = fs.existsSync(BUILD_GRADLE) && fs.lstatSync(BUILD_GRADLE).i
 // Check if the android folder exists and is complete
 if (androidExists && !gradleExists) {
   // Scenario 1: The android folder exists but is incomplete (created only by bundle:android)
-  console.log("⚠️ Incomplete Android project detected (contains assets but no Gradle files).");
-  console.log("📦 Backing up bundle and assets...");
+  log.warn("Incomplete Android project detected (contains assets but no Gradle files).");
+  log.info("Backing up bundle and assets...");
   
   // Create temp backup directories
   fs.mkdirSync(path.join(TEMP_ASSETS, 'assets'), { recursive: true });
@@ -49,7 +31,7 @@ if (androidExists && !gradleExists) {
     try {
       fs.cpSync(srcAssets, path.join(TEMP_ASSETS, 'assets'), { recursive: true });
     } catch (err) {
-      console.warn("⚠️ Warning backing up assets:", err.message);
+      log.warn(`Warning backing up assets: ${err.message}`);
     }
   }
   
@@ -58,17 +40,17 @@ if (androidExists && !gradleExists) {
     try {
       fs.cpSync(srcRes, path.join(TEMP_ASSETS, 'res'), { recursive: true });
     } catch (err) {
-      console.warn("⚠️ Warning backing up res:", err.message);
+      log.warn(`Warning backing up res: ${err.message}`);
     }
   }
   
-  console.log("🧹 Removing incomplete android directory to prevent Expo prompt...");
+  log.info("Cleaning up incomplete android directory to prevent Expo prompt...");
   fs.rmSync(ANDROID_DIR, { recursive: true, force: true });
   
-  console.log("🏗️ Running prebuild to generate clean native project...");
-  execSync('npx expo prebuild --platform android', { stdio: 'inherit' });
+  log.process("Running prebuild to generate clean native project...");
+  runCommand('npx expo prebuild --platform android');
   
-  console.log("🔄 Restoring bundle and assets into the complete native project...");
+  log.info("Restoring bundle and assets into the complete native project...");
   const destAssets = path.join(ANDROID_DIR, 'app', 'src', 'main', 'assets');
   const destRes = path.join(ANDROID_DIR, 'app', 'src', 'main', 'res');
   
@@ -79,7 +61,7 @@ if (androidExists && !gradleExists) {
     try {
       fs.cpSync(path.join(TEMP_ASSETS, 'assets'), destAssets, { recursive: true });
     } catch (err) {
-      console.warn("⚠️ Warning restoring assets:", err.message);
+      log.warn(`Warning restoring assets: ${err.message}`);
     }
   }
   
@@ -87,23 +69,23 @@ if (androidExists && !gradleExists) {
     try {
       fs.cpSync(path.join(TEMP_ASSETS, 'res'), destRes, { recursive: true });
     } catch (err) {
-      console.warn("⚠️ Warning restoring res:", err.message);
+      log.warn(`Warning restoring res: ${err.message}`);
     }
   }
   
-  console.log("🧹 Cleaning up temp backup files...");
+  log.info("Cleaning up temp backup files...");
   fs.rmSync(TEMP_ASSETS, { recursive: true, force: true });
-  console.log("✅ Prebuild completed and all assets successfully merged!");
+  log.success("Prebuild completed and all assets successfully merged!");
 
 } else if (androidExists && gradleExists) {
   // Scenario 2: The android folder is already fully scaffolded and complete
-  console.log("✅ Complete Android project detected.");
-  console.log("🏗️ Running incremental prebuild without clearing anything...");
-  execSync('npx expo prebuild --platform android', { stdio: 'inherit' });
+  log.success("Complete Android project detected.");
+  log.process("Running incremental prebuild without clearing anything...");
+  runCommand('npx expo prebuild --platform android');
 
 } else {
   // Scenario 3: The android folder does not exist at all
-  console.log("🆕 Android project does not exist.");
-  console.log("🏗️ Running prebuild to create native project...");
-  execSync('npx expo prebuild --platform android', { stdio: 'inherit' });
+  log.info("Android project does not exist.");
+  log.process("Running prebuild to create native project...");
+  runCommand('npx expo prebuild --platform android');
 }

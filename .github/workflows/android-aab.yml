@@ -47,9 +47,6 @@ jobs:
         run: node ./scripts/download-r2.js
         shell: bash
 
-      - name: Deploy Scripts to App
-        uses: appnatively/workflows/.github/actions/setup-scripts@master
-
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -74,16 +71,16 @@ jobs:
           BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
         run: |
           echo "⬇️ Downloading app assets from Google Drive..."
-          node ./scripts/setup-assets.js
+          node ../scripts/setup-assets.js
 
           echo "💉 Injecting dynamic environment variables into JS bundle..."
-          node ./scripts/inject-env.js android/app/src/main/assets/index.android.bundle
+          node ../scripts/inject-env.js android/app/src/main/assets/index.android.bundle
 
           echo "📱 Setting up App Info..."
-          node ./scripts/setup-app-info.js
+          node ../scripts/setup-app-info.js
 
           echo "🔥 Setting up Firebase..."
-          node ./scripts/setup-firebase.js
+          node ../scripts/setup-firebase.js
         shell: bash
         working-directory: app
 
@@ -99,7 +96,7 @@ jobs:
           cache-disabled: false
 
       - name: Expo Prebuild
-        run: node ./scripts/prebuild-android.js
+        run: node ../scripts/prebuild-android.js
         shell: bash
         working-directory: app
 
@@ -108,7 +105,7 @@ jobs:
           BUILD_ID: ${{ inputs.build_id }}
           API_URL: ${{ inputs.api_url }}
           BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
-        run: node ./scripts/setup-keystore.js
+        run: node ../scripts/setup-keystore.js
         shell: bash
         working-directory: app
 

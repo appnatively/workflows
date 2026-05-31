@@ -51,9 +51,6 @@ jobs:
         run: node ./scripts/download-r2.js
         shell: bash
 
-      - name: Deploy Scripts to App
-        uses: appnatively/workflows/.github/actions/setup-scripts@master
-
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -78,13 +75,13 @@ jobs:
           BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
         run: |
           echo "⬇️ Downloading app assets from Google Drive..."
-          node ./scripts/setup-assets.js
+          node ../scripts/setup-assets.js
 
           echo "📱 Setting up App Info..."
-          node ./scripts/setup-app-info.js
+          node ../scripts/setup-app-info.js
 
           echo "🔥 Setting up Firebase..."
-          node ./scripts/setup-firebase.js
+          node ../scripts/setup-firebase.js
         shell: bash
         working-directory: app
 
@@ -98,7 +95,7 @@ jobs:
           fi
 
       - name: Expo Prebuild
-        run: node ./scripts/prebuild-ios.js
+        run: node ../scripts/prebuild-ios.js
         shell: bash
         working-directory: app
 

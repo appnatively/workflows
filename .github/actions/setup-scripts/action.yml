@@ -8,29 +8,23 @@ runs:
       run: |
         SCRIPTS_SRC="${{ github.action_path }}/../../scripts"
 
-        DEPLOY_DIRS="scripts"
-        if [ -d "app" ]; then
-          DEPLOY_DIRS="$DEPLOY_DIRS app/scripts"
-        fi
+        DIR="scripts"
+        echo "📂 Deploying scripts to $DIR..."
+        mkdir -p "$DIR"
 
-        for DIR in $DEPLOY_DIRS; do
-          echo "📂 Deploying scripts to $DIR..."
-          mkdir -p "$DIR"
+        # Core setup scripts
+        cp "$SCRIPTS_SRC/setup-config.js" "$DIR/"
+        cp "$SCRIPTS_SRC/download-r2.js" "$DIR/"
+        cp "$SCRIPTS_SRC/setup-app-info.js" "$DIR/"
+        cp "$SCRIPTS_SRC/setup-assets.js" "$DIR/"
+        cp "$SCRIPTS_SRC/setup-firebase.js" "$DIR/"
+        cp "$SCRIPTS_SRC/setup-keystore.js" "$DIR/"
+        cp "$SCRIPTS_SRC/inject-env.js" "$DIR/"
+        cp "$SCRIPTS_SRC/utils.js" "$DIR/"
+        cp "$SCRIPTS_SRC/upload-google-drive.js" "$DIR/"
 
-          # Core setup scripts
-          cp "$SCRIPTS_SRC/setup-config.js" "$DIR/"
-          cp "$SCRIPTS_SRC/download-r2.js" "$DIR/"
-          cp "$SCRIPTS_SRC/setup-app-info.js" "$DIR/"
-          cp "$SCRIPTS_SRC/setup-assets.js" "$DIR/"
-          cp "$SCRIPTS_SRC/setup-firebase.js" "$DIR/"
-          cp "$SCRIPTS_SRC/setup-keystore.js" "$DIR/"
-          cp "$SCRIPTS_SRC/inject-env.js" "$DIR/"
-          cp "$SCRIPTS_SRC/generate-summary.js" "$DIR/"
-          cp "$SCRIPTS_SRC/upload-google-drive.js" "$DIR/"
-
-          # Prebuild scripts
-          cp "$SCRIPTS_SRC/prebuild-android.js" "$DIR/"
-          cp "$SCRIPTS_SRC/prebuild-ios.js" "$DIR/"
-        done
+        # Prebuild scripts
+        cp "$SCRIPTS_SRC/prebuild-android.js" "$DIR/"
+        cp "$SCRIPTS_SRC/prebuild-ios.js" "$DIR/"
 
         echo "✅ Script deployment complete."

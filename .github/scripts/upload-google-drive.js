@@ -1,40 +1,30 @@
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
+const { loadAppConfig, log, fail } = require('./utils');
 
 /**
  * 🛠️ Configuration Loader
  * Loads and validates app_config.json from the workspace
  */
-function loadConfig() {
+function loadAndValidateConfig() {
+  const { config, configPath } = loadAppConfig();
+
+  // Required fields check
+  const required = [
+    'google_drive_client_id',
+    'google_drive_client_secret',
+    'google_drive_refresh_token',
+    'app_id'
+  ];
+  
+  const missing = required.filter(key => !config[key]);
+  if (missing.length > 0) {
+    fail(`Missing required configuration keys in ${configPath}: ${missing.join(', ')}`);
+  }
+
   const workspacePath = process.env.GITHUB_WORKSPACE || process.cwd();
-  const configPath = path.resolve(workspacePath, 'app_config.json');
-
-  if (!fs.existsSync(configPath)) {
-    throw new Error(`❌ Configuration file not found at ${configPath}`);
-  }
-
-  console.log(`📖 Loading configuration from ${configPath}`);
-  try {
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    
-    // Required fields check
-    const required = [
-      'google_drive_client_id',
-      'google_drive_client_secret',
-      'google_drive_refresh_token',
-      'app_id'
-    ];
-    
-    const missing = required.filter(key => !config[key]);
-    if (missing.length > 0) {
-      throw new Error(`Missing required configuration keys: ${missing.join(', ')}`);
-    }
-
-    return { config, workspacePath };
-  } catch (error) {
-    throw new Error(`❌ Failed to parse config JSON: ${error.message}`);
-  }
+  return { config, workspacePath };
 }
 
 /**
@@ -73,7 +63,7 @@ async function findOrCreateFolder(drive, name, parentId) {
     return res.data.files[0].id;
   }
 
-  console.log(`📂 Creating folder: "${name}"`);
+  log.info(`Creating folder: "${name}"`);
   const folder = await drive.files.create({
     requestBody: {
       name: name,
@@ -92,10 +82,10 @@ async function findOrCreateFolder(drive, name, parentId) {
  */
 async function uploadFile(drive, filePath, folderId) {
   const fileName = path.basename(filePath);
-  console.log(`📥 Uploading artifact: "${fileName}"`);
+  log.info(`Uploading artifact: "${fileName}"`);
 
   if (!fs.existsSync(filePath)) {
-    throw new Error(`❌ File not found for upload: ${filePath}`);
+    fail(`File not found for upload: ${filePath}`);
   }
 
   const response = await drive.files.create({
@@ -111,9 +101,9 @@ async function uploadFile(drive, filePath, folderId) {
   });
 
   const fileId = response.data.id;
-  console.log(`✅ File uploaded successfully. ID: ${fileId}`);
+  log.success(`File uploaded successfully. ID: ${fileId}`);
 
-  console.log(`🌍 Setting public permissions...`);
+  log.info(`Setting public permissions...`);
   await drive.permissions.create({
     fileId: fileId,
     requestBody: {
@@ -130,14 +120,14 @@ async function uploadFile(drive, filePath, folderId) {
  */
 async function main() {
   try {
-    const { config, workspacePath } = loadConfig();
+    const { config, workspacePath } = loadAndValidateConfig();
     const drive = initDriveClient(config);
 
     const buildId = process.env.BUILD_ID || 'manual';
     const rawFilePath = process.env.FILE_PATH;
     
     if (!rawFilePath) {
-      throw new Error('❌ FILE_PATH environment variable is missing.');
+      fail('FILE_PATH environment variable is missing.');
     }
 
     const filePath = path.isAbsolute(rawFilePath) ? rawFilePath : path.resolve(workspacePath, rawFilePath);
@@ -154,9 +144,9 @@ async function main() {
     // 2. Perform Upload
     await uploadFile(drive, filePath, targetFolderId);
 
-    console.log('🎉 Job complete!');
+    log.success('Job complete!');
   } catch (error) {
-    console.error('\n❌ Google Drive Upload Failed:');
+    log.error('Google Drive Upload Failed:');
     if (error.response && error.response.data) {
       console.error(JSON.stringify(error.response.data, null, 2));
     } else {
