@@ -50,10 +50,10 @@ jobs:
           BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
         run: |
           echo "⬇️ Downloading app assets from Google Drive..."
-          node ./scripts/setup-assets.js
+          node actions/setup-scripts/setup-assets.js
 
           echo "💉 Injecting dynamic environment variables into JS bundle..."
-          node ./scripts/inject-env.js android/app/src/main/assets/index.android.bundle
+          node actions/setup-scripts/inject-env.js android/app/src/main/assets/index.android.bundle
 
           # 0. Setup App Info (Dynamic Package ID & App Name)
           echo "📱 Setting up App Info..."
