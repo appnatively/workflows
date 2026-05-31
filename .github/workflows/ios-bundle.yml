@@ -60,6 +60,12 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ inputs.ruby_version }}
+          bundler-cache: false
+
       - name: Install Workspace Dependencies
         run: pnpm install --frozen-lockfile --prefer-offline --filter "./app" --filter "./sdk"
         shell: bash
@@ -121,18 +127,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pods-
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ${{ inputs.ruby_version }}
-          bundler-cache: true
-
-      - name: Install Pods
-        run: |
-          gem install xcpretty --no-document
-          pod install
+      - name: Install Build Formatter
+        run: gem install xcbeautify --no-document
         shell: bash
-        working-directory: app/ios
 
       - name: Verify Pods Folder
         shell: bash
@@ -161,7 +158,7 @@ jobs:
               CODE_SIGN_STYLE=Manual \
               PROVISIONING_PROFILE_SPECIFIER="$IOS_PROVISIONING_PROFILE_UUID" \
               DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
-              CODE_SIGN_IDENTITY="$IOS_CODE_SIGN_IDENTITY" | xcpretty
+              CODE_SIGN_IDENTITY="$IOS_CODE_SIGN_IDENTITY" | xcbeautify
           else
             echo "🏗️ Building UNSIGNED iOS Archive..."
             xcodebuild archive \
@@ -174,8 +171,19 @@ jobs:
               CODE_SIGNING_ALLOWED=NO \
               CODE_SIGNING_REQUIRED=NO \
               CODE_SIGN_ENTITLEMENTS="" \
-              CODE_SIGNING_IDENTITY="" | xcpretty
+              CODE_SIGNING_IDENTITY="" | xcbeautify
           fi
+        working-directory: app/ios
+
+      - name: Inject Pre-built JS and Zip Archive
+        run: |
+          APP_PATH=$(find build/${{ steps.ios-name.outputs.name }}.xcarchive/Products/Applications -name "*.app" -type d -maxdepth 1)
+          if [ -z "$APP_PATH" ]; then exit 1; fi
+
+          cp main.jsbundle "$APP_PATH/"
+          if [ -d "assets" ]; then cp -R assets "$APP_PATH/"; fi
+
+          zip -r ../../app-ios-archive.zip build/${{ steps.ios-name.outputs.name }}.xcarchive
         working-directory: app/ios
 
       - name: Create IPA
@@ -203,7 +211,7 @@ jobs:
             xcodebuild -exportArchive \
               -archivePath build/${{ steps.ios-name.outputs.name }}.xcarchive \
               -exportPath build \
-              -exportOptionsPlist ExportOptions.plist | xcpretty
+              -exportOptionsPlist ExportOptions.plist | xcbeautify
             
             cp build/*.ipa ${{ steps.ios-name.outputs.name }}.ipa || true
           else
@@ -214,16 +222,7 @@ jobs:
           fi
         working-directory: app/ios
 
-      - name: Inject Pre-built JS and Zip Archive
-        run: |
-          APP_PATH=$(find build/${{ steps.ios-name.outputs.name }}.xcarchive/Products/Applications -name "*.app" -type d -maxdepth 1)
-          if [ -z "$APP_PATH" ]; then exit 1; fi
 
-          cp main.jsbundle "$APP_PATH/"
-          if [ -d "assets" ]; then cp -R assets "$APP_PATH/"; fi
-
-          zip -r ../../app-ios-archive.zip build/${{ steps.ios-name.outputs.name }}.xcarchive
-        working-directory: app/ios
 
       - name: Upload to Google Drive
         env:
@@ -247,5 +246,9 @@ jobs:
           if [ -n "$IOS_KEYCHAIN_PATH" ]; then
             echo "🔐 Deleting temporary signing keychain..."
             security delete-keychain "$IOS_KEYCHAIN_PATH" || true
+          fi
+          if [ -n "$IOS_PROVISIONING_PROFILE_UUID" ]; then
+            echo "🔐 Deleting temporary provisioning profile..."
+            rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/${IOS_PROVISIONING_PROFILE_UUID}.mobileprovision" || true
           fi
           echo "✅ Sanitization complete."
