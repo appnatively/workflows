@@ -11,7 +11,7 @@ platform :ios do
     method              = options[:method] || "app-store"
     keychain_path       = options[:keychain_path]
 
-    log.info "📦 Exporting IPA from Archive: #{archive_path} for Scheme: #{scheme_name} using keychain: #{keychain_path}"
+    UI.message "📦 Exporting IPA from Archive: #{archive_path} for Scheme: #{scheme_name} using keychain: #{keychain_path}"
 
     build_ios_app(
       archive_path: archive_path,
