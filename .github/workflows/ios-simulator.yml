@@ -160,17 +160,6 @@ jobs:
           tail -n 200 build.log >> $GITHUB_STEP_SUMMARY || true
         working-directory: app/ios
 
-      - name: Generate Job Summary
-        if: always()
-        env:
-          SUMMARY_TITLE: '🤖 iOS Simulator Build Summary'
-          SUMMARY_METRIC: 'App Size'
-          SUMMARY_FILE: 'app-ios-simulator.zip'
-          SUMMARY_PLATFORM: 'iOS Simulator'
-          SUMMARY_BUILD_ID: ${{ inputs.build_id }}
-        run: node ./scripts/generate-summary.js
-        shell: bash
-
       - name: Upload to Google Drive
         env:
           FILE_PATH: app-ios-simulator.zip

@@ -25,7 +25,6 @@ on:
       BUILD_ACCESS_TOKEN:
         required: true
 
-
 jobs:
   build-android-bundle:
     runs-on: ubuntu-latest
@@ -139,17 +138,6 @@ jobs:
             -Dorg.gradle.jvmargs="-Xmx3072m -XX:MaxMetaspaceSize=512m" \
             -Dorg.gradle.parallel=true
         working-directory: app/android
-
-      - name: Generate Job Summary
-        if: always()
-        env:
-          SUMMARY_TITLE: '📦 AAB Build Summary'
-          SUMMARY_METRIC: 'AAB Size'
-          SUMMARY_FILE: 'app/android/app/build/outputs/bundle/release/app-release.aab'
-          SUMMARY_PLATFORM: 'Android'
-          SUMMARY_BUILD_ID: ${{ inputs.build_id }}
-        run: node ./scripts/generate-summary.js
-        shell: bash
 
       - name: Upload to Google Drive
         env:

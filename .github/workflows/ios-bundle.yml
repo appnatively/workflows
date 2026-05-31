@@ -25,7 +25,6 @@ on:
       BUILD_ACCESS_TOKEN:
         required: true
 
-
 jobs:
   build-ios:
     runs-on: macos-latest
@@ -170,17 +169,6 @@ jobs:
 
           zip -r ../../app-ios-archive.zip build/${{ steps.ios-name.outputs.name }}.xcarchive
         working-directory: app/ios
-
-      - name: Generate Job Summary
-        if: always()
-        env:
-          SUMMARY_TITLE: '🍎 iOS Build Summary'
-          SUMMARY_METRIC: 'Archive Size'
-          SUMMARY_FILE: 'app-ios-archive.zip'
-          SUMMARY_PLATFORM: 'iOS'
-          SUMMARY_BUILD_ID: ${{ inputs.build_id }}
-        run: node ./scripts/generate-summary.js
-        shell: bash
 
       - name: Upload to Google Drive
         env:
