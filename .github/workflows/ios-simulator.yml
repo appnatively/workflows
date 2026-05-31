@@ -81,6 +81,11 @@ jobs:
         shell: bash
         working-directory: app
 
+      - name: Expo Prebuild
+        run: node ../scripts/prebuild-ios.js
+        shell: bash
+        working-directory: app
+
       - name: Get iOS Project Name
         id: ios-name
         run: |
@@ -89,11 +94,6 @@ jobs:
           else
             echo "name=AppNativelyApp" >> $GITHUB_OUTPUT
           fi
-
-      - name: Expo Prebuild
-        run: node ../scripts/prebuild-ios.js
-        shell: bash
-        working-directory: app
 
       - name: Configure iOS Signing
         env:
