@@ -141,9 +141,7 @@ jobs:
             -configuration Release \
             -archivePath build/${{ steps.ios-name.outputs.name }}.xcarchive \
             SKIP_BUNDLING=1 \
-            -destination 'generic/platform=iOS' \
-            CODE_SIGNING_ALLOWED=YES \
-            CODE_SIGNING_REQUIRED=YES | xcbeautify
+            -destination 'generic/platform=iOS' | xcbeautify
         working-directory: app/ios
 
       - name: Inject Pre-built JS and Zip Archive
