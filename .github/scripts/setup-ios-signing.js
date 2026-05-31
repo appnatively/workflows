@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { request, downloadFile, log, fail } = require('./utils');
+const { loadAppConfig, request, downloadFile, log, fail } = require('./utils');
 
 const apiUrl = process.env.API_URL;
 const buildId = process.env.BUILD_ID;
@@ -15,13 +15,8 @@ if (!apiUrl || !token) {
   fail("API_URL or BUILD_ACCESS_TOKEN not found in environment.");
 }
 
-// Read app_config.json to check if iOS custom signing files exist
-const configPath = path.join(process.cwd(), 'app_config.json');
-if (!fs.existsSync(configPath)) {
-  fail(`Configuration file not found at ${configPath}. Ensure you are in the application root directory.`);
-}
-
-const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+// Read app_config.json robustly using utils helper
+const { config } = loadAppConfig();
 
 // Check if iOS custom signing config exists
 const hasCertificate = config.ios_certificate_file_id && config.ios_certificate_file_id.length > 0;
