@@ -14,6 +14,10 @@ on:
         required: false
         type: string
         default: '3.3'
+      pnpm_version:
+        required: false
+        type: string
+        default: '10'
       api_url:
         required: true
         type: string
@@ -33,19 +37,37 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_26.app
         shell: bash
 
-      - name: Setup Configuration
-        id: config
-        uses: appnatively/workflows/.github/actions/setup-config@master
-        with:
-          api_url: ${{ inputs.api_url }}
-          build_id: ${{ github.event.inputs.build_id || inputs.build_id }}
-          build_access_token: ${{ secrets.BUILD_ACCESS_TOKEN }}
-
-      - name: Download from R2
-        uses: appnatively/workflows/.github/actions/download-r2@master
-
       - name: Setup Scripts
         uses: appnatively/workflows/.github/actions/setup-scripts@master
+
+      - name: Setup Configuration
+        env:
+          BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
+          API_URL: ${{ inputs.api_url }}
+          BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
+        run: node ./scripts/setup-config.js
+        shell: bash
+
+      - name: Download from R2
+        run: node ./scripts/download-r2.js
+        shell: bash
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ inputs.pnpm_version }}
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install Workspace Dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline --filter "./app" --filter "./sdk"
+        shell: bash
 
       - name: Download App Assets & Setup App Info
         env:
@@ -59,11 +81,9 @@ jobs:
           echo "💉 Injecting dynamic environment variables into JS bundle..."
           node ./scripts/inject-env.js ios/main.jsbundle
 
-          # 0. Setup App Info (Dynamic Package ID and App Name)
           echo "📱 Setting up App Info..."
           node ./scripts/setup-app-info.js
 
-          # 0. Setup Firebase (fetch and run from workflows repo)
           echo "🔥 Setting up Firebase..."
           node ./scripts/setup-firebase.js
         shell: bash
@@ -78,15 +98,41 @@ jobs:
             echo "name=AppNativelyApp" >> $GITHUB_OUTPUT
           fi
 
-      - name: Setup Mobile Environment
-        uses: appnatively/workflows/.github/actions/setup-mobile@master
+      - name: Expo Prebuild
+        run: node ./scripts/prebuild-ios.js
+        shell: bash
+        working-directory: app
+
+      - name: Cache Pods
+        uses: actions/cache@v5
         with:
-          ios: true
-          node_version: ${{ inputs.node_version }}
-          ruby_version: ${{ inputs.ruby_version }}
-          build_id: ${{ inputs.build_id }}
-          build_access_token: ${{ secrets.BUILD_ACCESS_TOKEN }}
-          api_url: ${{ inputs.api_url }}
+          path: app/ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('app/ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ inputs.ruby_version }}
+          bundler-cache: true
+
+      - name: Install Pods
+        run: |
+          gem install xcpretty --no-document
+          pod install
+        shell: bash
+        working-directory: app/ios
+
+      - name: Verify Pods Folder
+        shell: bash
+        run: |
+          if [ ! -d "Pods" ]; then
+            echo "Error: Pods folder not found!"
+            exit 1
+          fi
+          echo "Pods folder verified successfully."
+        working-directory: app/ios
 
       - name: Build iOS Archive (Unsigned)
         run: |
@@ -115,7 +161,7 @@ jobs:
         run: |
           APP_PATH=$(find build/${{ steps.ios-name.outputs.name }}.xcarchive/Products/Applications -name "*.app" -type d -maxdepth 1)
           if [ -z "$APP_PATH" ]; then exit 1; fi
-          
+
           cp main.jsbundle "$APP_PATH/"
           if [ -d "assets" ]; then cp -R assets "$APP_PATH/"; fi
 
@@ -124,19 +170,27 @@ jobs:
 
       - name: Generate Job Summary
         if: always()
-        uses: appnatively/workflows/.github/actions/generate-summary@master
-        with:
-          title: '🍎 iOS Build Summary'
-          metric_name: 'Archive Size'
-          file_path: 'app-ios-archive.zip'
-          platform: 'iOS'
-          build_id: ${{ inputs.build_id }}
+        env:
+          SUMMARY_TITLE: '🍎 iOS Build Summary'
+          SUMMARY_METRIC: 'Archive Size'
+          SUMMARY_FILE: 'app-ios-archive.zip'
+          SUMMARY_PLATFORM: 'iOS'
+          SUMMARY_BUILD_ID: ${{ inputs.build_id }}
+        run: node ./scripts/generate-summary.js
+        shell: bash
 
       - name: Upload to Google Drive
-        uses: appnatively/workflows/.github/actions/upload-google-drive@master
-        with:
-          source: app-ios-archive.zip
-          build_id: ${{ inputs.build_id }}
+        env:
+          FILE_PATH: app-ios-archive.zip
+          BUILD_ID: ${{ inputs.build_id }}
+        run: |
+          cd ./scripts
+          if [ ! -d "node_modules" ]; then
+            pnpm init > /dev/null
+            pnpm add googleapis@171.4.0 > /dev/null
+          fi
+          node upload-google-drive.js
+        shell: bash
 
       - name: "Security Sanitization: Cleanup Configuration"
         if: always()

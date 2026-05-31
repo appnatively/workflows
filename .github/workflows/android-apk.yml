@@ -14,6 +14,10 @@ on:
         required: false
         type: string
         default: '17'
+      pnpm_version:
+        required: false
+        type: string
+        default: '10'
       api_url:
         required: true
         type: string
@@ -29,19 +33,37 @@ jobs:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
     steps:
-      - name: Setup Configuration
-        id: config
-        uses: appnatively/workflows/.github/actions/setup-config@master
-        with:
-          api_url: ${{ inputs.api_url }}
-          build_id: ${{ inputs.build_id }}
-          build_access_token: ${{ secrets.BUILD_ACCESS_TOKEN }}
-
-      - name: Download from R2
-        uses: appnatively/workflows/.github/actions/download-r2@master
-
       - name: Setup Scripts
         uses: appnatively/workflows/.github/actions/setup-scripts@master
+
+      - name: Setup Configuration
+        env:
+          BUILD_ID: ${{ inputs.build_id }}
+          API_URL: ${{ inputs.api_url }}
+          BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
+        run: node ./scripts/setup-config.js
+        shell: bash
+
+      - name: Download from R2
+        run: node ./scripts/download-r2.js
+        shell: bash
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ inputs.pnpm_version }}
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install Workspace Dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline --filter "./app"
+        shell: bash
 
       - name: Download App Assets & Setup App Info
         env:
@@ -55,24 +77,54 @@ jobs:
           echo "💉 Injecting dynamic environment variables into JS bundle..."
           node ./scripts/inject-env.js android/app/src/main/assets/index.android.bundle
 
-          # 0. Setup App Info (Dynamic Package ID & App Name)
           echo "📱 Setting up App Info..."
           node ./scripts/setup-app-info.js
 
-          # 0. Setup Firebase (fetch and run from workflows repo)
           echo "🔥 Setting up Firebase..."
           node ./scripts/setup-firebase.js
+        shell: bash
         working-directory: app
 
-      - name: Setup Environment
-        uses: appnatively/workflows/.github/actions/setup-mobile@master
+      - name: Setup Java
+        uses: actions/setup-java@v5
         with:
-          android: true
-          node_version: ${{ inputs.node_version }}
-          java_version: ${{ inputs.java_version }}
-          build_id: ${{ inputs.build_id }}
-          build_access_token: ${{ secrets.BUILD_ACCESS_TOKEN }}
-          api_url: ${{ inputs.api_url }}
+          distribution: 'temurin'
+          java-version: ${{ inputs.java_version }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-disabled: false
+
+      - name: Expo Prebuild
+        run: node ./scripts/prebuild-android.js
+        shell: bash
+        working-directory: app
+
+      - name: Configure Keystore & Signing
+        env:
+          BUILD_ID: ${{ inputs.build_id }}
+          API_URL: ${{ inputs.api_url }}
+          BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
+        run: node ./scripts/setup-keystore.js
+        shell: bash
+        working-directory: app
+
+      - name: Disable JS Bundling Tasks in build.gradle
+        shell: bash
+        run: |
+          cat << 'EOF' >> app/build.gradle
+
+          // Dynamically injected via GitHub Actions to skip JS bundling
+          gradle.taskGraph.whenReady { taskGraph ->
+              taskGraph.allTasks.each { task ->
+                  if (task.name.contains("createBundle") || task.name.contains("bundleReleaseJsAndAssets")) {
+                      task.enabled = false
+                  }
+              }
+          }
+          EOF
+        working-directory: app/android
 
       # 🏗️ Build APK without re-bundling JavaScript
       - name: Build Release APK (unsigned) - Using Pre-built Bundle
@@ -88,19 +140,27 @@ jobs:
 
       - name: Generate Job Summary
         if: always()
-        uses: appnatively/workflows/.github/actions/generate-summary@master
-        with:
-          title: '📱 Build Summary'
-          metric_name: 'APK Size'
-          file_path: 'app/android/app/build/outputs/apk/release/app-release.apk'
-          platform: 'Android'
-          build_id: ${{ inputs.build_id }}
+        env:
+          SUMMARY_TITLE: '📱 Build Summary'
+          SUMMARY_METRIC: 'APK Size'
+          SUMMARY_FILE: 'app/android/app/build/outputs/apk/release/app-release.apk'
+          SUMMARY_PLATFORM: 'Android'
+          SUMMARY_BUILD_ID: ${{ inputs.build_id }}
+        run: node ./scripts/generate-summary.js
+        shell: bash
 
       - name: Upload to Google Drive
-        uses: appnatively/workflows/.github/actions/upload-google-drive@master
-        with:
-          source: app/android/app/build/outputs/apk/release/app-release.apk
-          build_id: ${{ inputs.build_id }}
+        env:
+          FILE_PATH: app/android/app/build/outputs/apk/release/app-release.apk
+          BUILD_ID: ${{ inputs.build_id }}
+        run: |
+          cd ./scripts
+          if [ ! -d "node_modules" ]; then
+            pnpm init > /dev/null
+            pnpm add googleapis@171.4.0 > /dev/null
+          fi
+          node upload-google-drive.js
+        shell: bash
 
       - name: "Security Sanitization: Cleanup Configuration"
         if: always()

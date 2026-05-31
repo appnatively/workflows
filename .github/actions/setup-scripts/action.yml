@@ -6,25 +6,31 @@ runs:
     - name: Deploy Scripts to Workspace
       shell: bash
       run: |
-        # # This ensures that if a required script is missing, the build fails with a clear log entry.
-        
-        # DEPLOY_DIRS="scripts"
-        # if [ -d "app" ]; then
-        #   DEPLOY_DIRS="$DEPLOY_DIRS app/scripts"
-        # fi
+        SCRIPTS_SRC="${{ github.action_path }}/../../scripts"
 
-        # for DIR in $DEPLOY_DIRS; do
-        #   echo "📂 Deploying scripts to $DIR..."
-        #   mkdir -p "$DIR"
-          
-        #   # Explicitly copy required Node scripts
-        #   cp "${{ github.action_path }}/setup-app-info.js" "$DIR/"
-        #   cp "${{ github.action_path }}/setup-assets.js" "$DIR/"
-        #   cp "${{ github.action_path }}/setup-firebase.js" "$DIR/"
-        #   cp "${{ github.action_path }}/setup-keystore.js" "$DIR/"
-        #   cp "${{ github.action_path }}/prebuild-android.js" "$DIR/"
-        #   cp "${{ github.action_path }}/prebuild-ios.js" "$DIR/"
-        #   cp "${{ github.action_path }}/inject-env.js" "$DIR/"
-        # done
-        
+        DEPLOY_DIRS="scripts"
+        if [ -d "app" ]; then
+          DEPLOY_DIRS="$DEPLOY_DIRS app/scripts"
+        fi
+
+        for DIR in $DEPLOY_DIRS; do
+          echo "📂 Deploying scripts to $DIR..."
+          mkdir -p "$DIR"
+
+          # Core setup scripts
+          cp "$SCRIPTS_SRC/setup-config.js" "$DIR/"
+          cp "$SCRIPTS_SRC/download-r2.js" "$DIR/"
+          cp "$SCRIPTS_SRC/setup-app-info.js" "$DIR/"
+          cp "$SCRIPTS_SRC/setup-assets.js" "$DIR/"
+          cp "$SCRIPTS_SRC/setup-firebase.js" "$DIR/"
+          cp "$SCRIPTS_SRC/setup-keystore.js" "$DIR/"
+          cp "$SCRIPTS_SRC/inject-env.js" "$DIR/"
+          cp "$SCRIPTS_SRC/generate-summary.js" "$DIR/"
+          cp "$SCRIPTS_SRC/upload-google-drive.js" "$DIR/"
+
+          # Prebuild scripts
+          cp "$SCRIPTS_SRC/prebuild-android.js" "$DIR/"
+          cp "$SCRIPTS_SRC/prebuild-ios.js" "$DIR/"
+        done
+
         echo "✅ Script deployment complete."
