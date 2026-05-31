@@ -145,9 +145,6 @@ async function run() {
     fs.unlinkSync(certPath);
     fs.unlinkSync(profilePath);
 
-    // Patch the main target's project.pbxproj to use manual signing settings
-    configureManualSigningInPbxProj(uuid, teamId, codeSignIdentity);
-
     // Export variables to GitHub Actions environment
     if (process.env.GITHUB_ENV) {
       fs.appendFileSync(process.env.GITHUB_ENV, `IOS_PROVISIONING_PROFILE_UUID=${uuid}\n`);
@@ -161,47 +158,6 @@ async function run() {
 
   } catch (error) {
     fail(`iOS signing setup failed: ${error.message}`);
-  }
-}
-
-// Helper to patch the dynamically generated project.pbxproj specifically for the main target
-function configureManualSigningInPbxProj(uuid, teamId, codeSignIdentity) {
-  const iosDir = path.join(process.cwd(), 'ios');
-  if (!fs.existsSync(iosDir)) {
-    log.warn("⚠️ ios directory not found. Skipping pbxproj manual signing patch.");
-    return;
-  }
-
-  const files = fs.readdirSync(iosDir);
-  const xcodeProjDir = files.find(file => file.endsWith('.xcodeproj'));
-  if (!xcodeProjDir) {
-    log.warn("⚠️ No .xcodeproj folder found to patch signing settings.");
-    return;
-  }
-
-  const pbxProjPath = path.join(iosDir, xcodeProjDir, 'project.pbxproj');
-  if (fs.existsSync(pbxProjPath)) {
-    log.process(`⚙️ Patching manual signing settings in ${pbxProjPath}...`);
-    try {
-      let content = fs.readFileSync(pbxProjPath, 'utf8');
-
-      // Replace CODE_SIGN_STYLE = Automatic; with manual signing parameters
-      const searchString = /CODE_SIGN_STYLE\s*=\s*Automatic\s*;/g;
-      const replacement = `CODE_SIGN_STYLE = Manual;
-\t\t\t\tCODE_SIGN_IDENTITY = "${codeSignIdentity}";
-\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "${uuid}";
-\t\t\t\tDEVELOPMENT_TEAM = "${teamId}";`;
-
-      if (content.match(searchString)) {
-        content = content.replace(searchString, replacement);
-        fs.writeFileSync(pbxProjPath, content, 'utf8');
-        log.success("✅ Successfully patched project.pbxproj to use manual signing settings!");
-      } else {
-        log.warn("⚠️ CODE_SIGN_STYLE = Automatic; not found in project.pbxproj.");
-      }
-    } catch (err) {
-      log.warn(`Warning: Failed to patch project.pbxproj: ${err.message}`);
-    }
   }
 }
 
