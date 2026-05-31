@@ -2,61 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const { runCommand, log, fail } = require('./utils');
 
-// Helper to inject CocoaPods signing exemptions and trigger pod install
-function applySigningExemptionsAndInstall() {
-  const podfilePath = path.join(IOS_DIR, 'Podfile');
-  if (fs.existsSync(podfilePath)) {
-    log.process("💉 Injecting CocoaPods target signing exemptions into Podfile...");
-    
-    try {
-      let podfileContent = fs.readFileSync(podfilePath, 'utf8');
-      
-      const patch = `post_install do |installer|
-  # ==========================================
-  # Dynamic SaaS Builder Code Signing Patch
-  # ==========================================
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
-      config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
-    end
-  end`;
-      
-      // Inject inside the existing post_install hook robustly
-      if (podfileContent.includes('post_install do |installer|')) {
-        podfileContent = podfileContent.replace('post_install do |installer|', patch);
-        fs.writeFileSync(podfilePath, podfileContent, 'utf8');
-        log.success("Signing exemptions successfully injected inside existing post_install block.");
-      } else {
-        // Fallback: If no existing post_install block, append a new one
-        const fallbackHook = `
-post_install do |installer|
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
-      config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
-    end
-  end
-end
-`;
-        fs.appendFileSync(podfilePath, fallbackHook);
-        log.success("No existing post_install block found. Appended new hook to Podfile.");
-      }
-    } catch (err) {
-      fail(`Failed to write signing exemptions to Podfile: ${err.message}`);
-    }
-  } else {
-    fail("Podfile not found after Expo prebuild!");
-  }
-
-  log.process("📦 Executing manual pod install...");
-  try {
-    runCommand('pod install', { cwd: IOS_DIR });
-    log.success("CocoaPods dependencies installed successfully!");
-  } catch (err) {
-    fail(`Manual pod install failed: ${err.message}`);
-  }
-}
 
 // Define directories
 const IOS_DIR = 'ios';
@@ -111,8 +56,8 @@ if (iosExists && !xcodeProjExists) {
   log.info("Cleaning up incomplete ios directory to prevent Expo prompt...");
   fs.rmSync(IOS_DIR, { recursive: true, force: true });
   
-  log.process("Running prebuild to generate clean native project (skipping install)...");
-  runCommand('npx expo prebuild --platform ios --no-install');
+  log.process("Running prebuild to generate clean native project...");
+  runCommand('npx expo prebuild --platform ios');
   
   log.info("Restoring bundle and assets into the complete native project...");
   fs.mkdirSync(IOS_DIR, { recursive: true });
@@ -139,19 +84,16 @@ if (iosExists && !xcodeProjExists) {
   log.info("Cleaning up temp backup files...");
   fs.rmSync(TEMP_ASSETS, { recursive: true, force: true });
   log.success("iOS Prebuild completed and all assets successfully merged!");
-  applySigningExemptionsAndInstall();
 
 } else if (iosExists && xcodeProjExists) {
   // Scenario 2: The ios folder is already fully scaffolded and complete
   log.success("Complete iOS project detected.");
-  log.process("Running incremental prebuild (skipping install)...");
-  runCommand('npx expo prebuild --platform ios --no-install');
-  applySigningExemptionsAndInstall();
+  log.process("Running incremental prebuild without clearing anything...");
+  runCommand('npx expo prebuild --platform ios');
 
 } else {
   // Scenario 3: The ios folder does not exist at all
   log.info("iOS project does not exist.");
-  log.process("Running prebuild to create native project (skipping install)...");
-  runCommand('npx expo prebuild --platform ios --no-install');
-  applySigningExemptionsAndInstall();
+  log.process("Running prebuild to create native project...");
+  runCommand('npx expo prebuild --platform ios');
 }
