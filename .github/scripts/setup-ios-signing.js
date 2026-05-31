@@ -88,7 +88,7 @@ async function run() {
     log.info("Importing P12 certificate into keychain...");
     // Import using execSync but catch error securely to avoid password leaks
     try {
-      execSync(`security import "${certPath}" -k "${keychainPath}" -P "${certificatePassword}" -A -T /usr/bin/codesign`, { stdio: 'ignore' });
+      execSync(`security import "${certPath}" -k "${keychainPath}" -A -T /usr/bin/codesign`, { stdio: 'ignore' });
     } catch (err) {
       fail("Failed to import the P12 certificate. Please verify that the password is correct.");
     }
