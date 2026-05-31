@@ -19,6 +19,7 @@ runs:
         cp "$SCRIPTS_SRC/setup-assets.js" "$DIR/"
         cp "$SCRIPTS_SRC/setup-firebase.js" "$DIR/"
         cp "$SCRIPTS_SRC/setup-keystore.js" "$DIR/"
+        cp "$SCRIPTS_SRC/setup-ios-signing.js" "$DIR/"
         cp "$SCRIPTS_SRC/inject-env.js" "$DIR/"
         cp "$SCRIPTS_SRC/utils.js" "$DIR/"
         cp "$SCRIPTS_SRC/upload-google-drive.js" "$DIR/"

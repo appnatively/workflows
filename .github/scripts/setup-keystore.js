@@ -54,8 +54,8 @@ async function run() {
     log.success("Keystore binary successfully written to android/app/release.jks");
 
     // 3. Fetch keystore credentials
-    log.info("Downloading keystore secrets from Keystore API...");
-    const credsJsonString = await makeGetRequest(`/builds/${buildId}/keystore`, false);
+    log.info("Downloading keystore secrets from Credentials API...");
+    const credsJsonString = await makeGetRequest(`/builds/${buildId}/credentials?fileType=android_credentials`, false);
     const keystoreCreds = JSON.parse(credsJsonString);
 
     if (!keystoreCreds.storePassword || !keystoreCreds.keyAlias || !keystoreCreds.keyPassword) {

@@ -84,6 +84,11 @@ jobs:
         shell: bash
         working-directory: app
 
+      - name: Expo Prebuild
+        run: node ../scripts/prebuild-ios.js
+        shell: bash
+        working-directory: app
+
       - name: Get iOS Project Name
         id: ios-name
         run: |
@@ -93,8 +98,12 @@ jobs:
             echo "name=AppNativelyApp" >> $GITHUB_OUTPUT
           fi
 
-      - name: Expo Prebuild
-        run: node ../scripts/prebuild-ios.js
+      - name: Configure iOS Signing
+        env:
+          BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
+          API_URL: ${{ inputs.api_url }}
+          BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
+        run: node ../scripts/setup-ios-signing.js
         shell: bash
         working-directory: app
 
@@ -129,27 +138,75 @@ jobs:
           echo "Pods folder verified successfully."
         working-directory: app/ios
 
-      - name: Build iOS Archive (Unsigned)
+      - name: Build iOS Archive
         run: |
           set -o pipefail
-          xcodebuild archive \
-            -workspace ${{ steps.ios-name.outputs.name }}.xcworkspace \
-            -scheme ${{ steps.ios-name.outputs.name }} \
-            -configuration Release \
-            -archivePath build/${{ steps.ios-name.outputs.name }}.xcarchive \
-            SKIP_BUNDLING=1 \
-            -destination 'generic/platform=iOS' \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_ENTITLEMENTS="" \
-            CODE_SIGNING_IDENTITY="" | xcpretty
+          if [ -n "$IOS_PROVISIONING_PROFILE_UUID" ]; then
+            echo "🏗️ Building SIGNED iOS Archive..."
+            xcodebuild archive \
+              -workspace ${{ steps.ios-name.outputs.name }}.xcworkspace \
+              -scheme ${{ steps.ios-name.outputs.name }} \
+              -configuration Release \
+              -archivePath build/${{ steps.ios-name.outputs.name }}.xcarchive \
+              SKIP_BUNDLING=1 \
+              -destination 'generic/platform=iOS' \
+              CODE_SIGNING_ALLOWED=YES \
+              CODE_SIGNING_REQUIRED=YES \
+              CODE_SIGN_STYLE=Manual \
+              PROVISIONING_PROFILE_SPECIFIER="$IOS_PROVISIONING_PROFILE_UUID" \
+              DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
+              CODE_SIGN_IDENTITY="$IOS_CODE_SIGN_IDENTITY" | xcpretty
+          else
+            echo "🏗️ Building UNSIGNED iOS Archive..."
+            xcodebuild archive \
+              -workspace ${{ steps.ios-name.outputs.name }}.xcworkspace \
+              -scheme ${{ steps.ios-name.outputs.name }} \
+              -configuration Release \
+              -archivePath build/${{ steps.ios-name.outputs.name }}.xcarchive \
+              SKIP_BUNDLING=1 \
+              -destination 'generic/platform=iOS' \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGN_ENTITLEMENTS="" \
+              CODE_SIGNING_IDENTITY="" | xcpretty
+          fi
         working-directory: app/ios
 
-      - name: Create IPA (Unsigned Payload)
+      - name: Create IPA
         run: |
-          mkdir -p Payload
-          cp -r build/${{ steps.ios-name.outputs.name }}.xcarchive/Products/Applications/*.app Payload/
-          zip -r ${{ steps.ios-name.outputs.name }}.ipa Payload
+          if [ -n "$IOS_PROVISIONING_PROFILE_UUID" ]; then
+            echo "📦 Generating SIGNED IPA..."
+            cat <<EOF > ExportOptions.plist
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>${IOS_DISTRIBUTION_METHOD:-app-store}</string>
+    <key>teamID</key>
+    <string>${IOS_TEAM_ID}</string>
+    <key>signingStyle</key>
+    <string>manual</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>${IOS_BUNDLE_ID}</key>
+        <string>${IOS_PROVISIONING_PROFILE_UUID}</string>
+    </dict>
+</dict>
+</plist>
+EOF
+            xcodebuild -exportArchive \
+              -archivePath build/${{ steps.ios-name.outputs.name }}.xcarchive \
+              -exportPath build \
+              -exportOptionsPlist ExportOptions.plist | xcpretty
+            
+            cp build/*.ipa ${{ steps.ios-name.outputs.name }}.ipa || true
+          else
+            echo "📦 Generating UNSIGNED IPA (Payload Zip)..."
+            mkdir -p Payload
+            cp -r build/${{ steps.ios-name.outputs.name }}.xcarchive/Products/Applications/*.app Payload/
+            zip -r ${{ steps.ios-name.outputs.name }}.ipa Payload
+          fi
         working-directory: app/ios
 
       - name: Inject Pre-built JS and Zip Archive
@@ -182,4 +239,8 @@ jobs:
         run: |
           echo "🧹 Securely deleting configuration files..."
           rm -f app_config.json || true
+          if [ -n "$IOS_KEYCHAIN_PATH" ]; then
+            echo "🔐 Deleting temporary signing keychain..."
+            security delete-keychain "$IOS_KEYCHAIN_PATH" || true
+          fi
           echo "✅ Sanitization complete."
