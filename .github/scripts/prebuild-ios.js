@@ -2,6 +2,44 @@ const fs = require('fs');
 const path = require('path');
 const { runCommand, log, fail } = require('./utils');
 
+// Helper to inject CocoaPods signing exemptions and trigger pod install
+function applySigningExemptionsAndInstall() {
+  const podfilePath = path.join(IOS_DIR, 'Podfile');
+  if (fs.existsSync(podfilePath)) {
+    log.process("💉 Injecting CocoaPods target signing exemptions into Podfile...");
+    
+    const postInstallHook = `
+# ==========================================
+# Dynamic SaaS Builder Code Signing Patch
+# ==========================================
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+      config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
+    end
+  end
+end
+`;
+    try {
+      fs.appendFileSync(podfilePath, postInstallHook);
+      log.success("Signing exemptions successfully injected in Podfile.");
+    } catch (err) {
+      fail(`Failed to write signing exemptions to Podfile: ${err.message}`);
+    }
+  } else {
+    fail("Podfile not found after Expo prebuild!");
+  }
+
+  log.process("📦 Executing manual pod install...");
+  try {
+    runCommand('pod install', { cwd: IOS_DIR });
+    log.success("CocoaPods dependencies installed successfully!");
+  } catch (err) {
+    fail(`Manual pod install failed: ${err.message}`);
+  }
+}
+
 // Define directories
 const IOS_DIR = 'ios';
 const TEMP_ASSETS = `temp-assets-ios-${process.pid}`;
@@ -55,8 +93,8 @@ if (iosExists && !xcodeProjExists) {
   log.info("Cleaning up incomplete ios directory to prevent Expo prompt...");
   fs.rmSync(IOS_DIR, { recursive: true, force: true });
   
-  log.process("Running prebuild to generate clean native project...");
-  runCommand('npx expo prebuild --platform ios');
+  log.process("Running prebuild to generate clean native project (skipping install)...");
+  runCommand('npx expo prebuild --platform ios --no-install');
   
   log.info("Restoring bundle and assets into the complete native project...");
   fs.mkdirSync(IOS_DIR, { recursive: true });
@@ -83,16 +121,19 @@ if (iosExists && !xcodeProjExists) {
   log.info("Cleaning up temp backup files...");
   fs.rmSync(TEMP_ASSETS, { recursive: true, force: true });
   log.success("iOS Prebuild completed and all assets successfully merged!");
+  applySigningExemptionsAndInstall();
 
 } else if (iosExists && xcodeProjExists) {
   // Scenario 2: The ios folder is already fully scaffolded and complete
   log.success("Complete iOS project detected.");
-  log.process("Running incremental prebuild without clearing anything...");
-  runCommand('npx expo prebuild --platform ios');
+  log.process("Running incremental prebuild (skipping install)...");
+  runCommand('npx expo prebuild --platform ios --no-install');
+  applySigningExemptionsAndInstall();
 
 } else {
   // Scenario 3: The ios folder does not exist at all
   log.info("iOS project does not exist.");
-  log.process("Running prebuild to create native project...");
-  runCommand('npx expo prebuild --platform ios');
+  log.process("Running prebuild to create native project (skipping install)...");
+  runCommand('npx expo prebuild --platform ios --no-install');
+  applySigningExemptionsAndInstall();
 }
