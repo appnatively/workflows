@@ -64,7 +64,7 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ inputs.ruby_version }}
-          bundler-cache: false
+          bundler-cache: true
 
       - name: Install Workspace Dependencies
         run: pnpm install --frozen-lockfile --prefer-offline --filter "./app" --filter "./sdk"
@@ -119,60 +119,35 @@ jobs:
         shell: bash
         working-directory: app
 
-      - name: Cache Pods
-        uses: actions/cache@v5
-        with:
-          path: app/ios/Pods
-          key: ${{ runner.os }}-pods-${{ hashFiles('app/ios/Podfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pods-
-
       - name: Install Build Formatter
-        run: brew install xcbeautify
+        run: |
+          if ! command -v xcbeautify &> /dev/null; then
+            echo "🚀 xcbeautify not found. Installing via npm..."
+            npm install -g xcbeautify
+          else
+            echo "✅ xcbeautify is already pre-installed."
+          fi
         shell: bash
 
-      - name: Verify Pods Folder
-        shell: bash
-        run: |
-          if [ ! -d "Pods" ]; then
-            echo "Error: Pods folder not found!"
-            exit 1
-          fi
-          echo "Pods folder verified successfully."
-        working-directory: app/ios
+
 
       - name: Build iOS Archive
         run: |
           set -o pipefail
-          if [ -n "$IOS_PROVISIONING_PROFILE_UUID" ]; then
-            echo "🏗️ Building SIGNED iOS Archive..."
-            xcodebuild archive \
-              -workspace ${{ steps.ios-name.outputs.name }}.xcworkspace \
-              -scheme ${{ steps.ios-name.outputs.name }} \
-              -configuration Release \
-              -archivePath build/${{ steps.ios-name.outputs.name }}.xcarchive \
-              SKIP_BUNDLING=1 \
-              -destination 'generic/platform=iOS' \
-              CODE_SIGNING_ALLOWED=YES \
-              CODE_SIGNING_REQUIRED=YES \
-              CODE_SIGN_STYLE=Manual \
-              PROVISIONING_PROFILE_SPECIFIER="$IOS_PROVISIONING_PROFILE_UUID" \
-              DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
-              CODE_SIGN_IDENTITY="$IOS_CODE_SIGN_IDENTITY" | xcbeautify
-          else
-            echo "🏗️ Building UNSIGNED iOS Archive..."
-            xcodebuild archive \
-              -workspace ${{ steps.ios-name.outputs.name }}.xcworkspace \
-              -scheme ${{ steps.ios-name.outputs.name }} \
-              -configuration Release \
-              -archivePath build/${{ steps.ios-name.outputs.name }}.xcarchive \
-              SKIP_BUNDLING=1 \
-              -destination 'generic/platform=iOS' \
-              CODE_SIGNING_ALLOWED=NO \
-              CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGN_ENTITLEMENTS="" \
-              CODE_SIGNING_IDENTITY="" | xcbeautify
-          fi
+          echo "🏗️ Building SIGNED iOS Archive..."
+          xcodebuild archive \
+            -workspace ${{ steps.ios-name.outputs.name }}.xcworkspace \
+            -scheme ${{ steps.ios-name.outputs.name }} \
+            -configuration Release \
+            -archivePath build/${{ steps.ios-name.outputs.name }}.xcarchive \
+            SKIP_BUNDLING=1 \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=YES \
+            CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER="$IOS_PROVISIONING_PROFILE_UUID" \
+            DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
+            CODE_SIGN_IDENTITY="$IOS_CODE_SIGN_IDENTITY" | xcbeautify
         working-directory: app/ios
 
       - name: Inject Pre-built JS and Zip Archive
@@ -186,43 +161,28 @@ jobs:
           zip -r ../../app-ios-archive.zip build/${{ steps.ios-name.outputs.name }}.xcarchive
         working-directory: app/ios
 
-      - name: Create IPA
+      - name: Create IPA (via Fastlane)
         run: |
-          if [ -n "$IOS_PROVISIONING_PROFILE_UUID" ]; then
-            echo "📦 Generating SIGNED IPA..."
-            echo '<?xml version="1.0" encoding="UTF-8"?>' > ExportOptions.plist
-            echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> ExportOptions.plist
-            echo '<plist version="1.0">' >> ExportOptions.plist
-            echo '<dict>' >> ExportOptions.plist
-            echo '    <key>method</key>' >> ExportOptions.plist
-            echo "    <string>${IOS_DISTRIBUTION_METHOD:-app-store}</string>" >> ExportOptions.plist
-            echo '    <key>teamID</key>' >> ExportOptions.plist
-            echo "    <string>${IOS_TEAM_ID}</string>" >> ExportOptions.plist
-            echo '    <key>signingStyle</key>' >> ExportOptions.plist
-            echo '    <string>manual</string>' >> ExportOptions.plist
-            echo '    <key>provisioningProfiles</key>' >> ExportOptions.plist
-            echo '    <dict>' >> ExportOptions.plist
-            echo "        <key>${IOS_BUNDLE_ID}</key>" >> ExportOptions.plist
-            echo "        <string>${IOS_PROVISIONING_PROFILE_UUID}</string>" >> ExportOptions.plist
-            echo '    </dict>' >> ExportOptions.plist
-            echo '</dict>' >> ExportOptions.plist
-            echo '</plist>' >> ExportOptions.plist
-
-            xcodebuild -exportArchive \
-              -archivePath build/${{ steps.ios-name.outputs.name }}.xcarchive \
-              -exportPath build \
-              -exportOptionsPlist ExportOptions.plist | xcbeautify
-            
-            cp build/*.ipa ${{ steps.ios-name.outputs.name }}.ipa || true
+          bundle exec fastlane ios export_saas_ipa \
+            --fastfile ../../fastlane/Fastfile \
+            archive_path:"build/${{ steps.ios-name.outputs.name }}.xcarchive" \
+            scheme_name:"${{ steps.ios-name.outputs.name }}" \
+            team_id:"$IOS_TEAM_ID" \
+            profile_uuid:"$IOS_PROVISIONING_PROFILE_UUID" \
+            bundle_id:"$IOS_BUNDLE_ID" \
+            method:"${IOS_DISTRIBUTION_METHOD:-app-store}" \
+            keychain_path:"$IOS_KEYCHAIN_PATH"
+          
+          if [ -f build/${{ steps.ios-name.outputs.name }}.ipa ]; then
+            cp build/${{ steps.ios-name.outputs.name }}.ipa ./
+            echo "✅ Success: IPA generated and moved."
           else
-            echo "📦 Generating UNSIGNED IPA (Payload Zip)..."
-            mkdir -p Payload
-            cp -r build/${{ steps.ios-name.outputs.name }}.xcarchive/Products/Applications/*.app Payload/
-            zip -r ${{ steps.ios-name.outputs.name }}.ipa Payload
+            echo "❌ Error: IPA export failed or file not found!"
+            exit 1
           fi
         working-directory: app/ios
-
-
+        env:
+          BUNDLE_GEMFILE: ../../Gemfile
 
       - name: Upload to Google Drive
         env:

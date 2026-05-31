@@ -19,13 +19,12 @@ if (!apiUrl || !token) {
 const { config } = loadAppConfig();
 
 // Check if iOS custom signing config exists
-// const hasCertificate = config.ios_certificate_file_id && config.ios_certificate_file_id.length > 0;
-// const hasProvisioningProfile = config.ios_provisioning_profile_file_id && config.ios_provisioning_profile_file_id.length > 0;
+const hasCertificate = config.ios_certificate_file_id && config.ios_certificate_file_id.length > 0;
+const hasProvisioningProfile = config.ios_provisioning_profile_file_id && config.ios_provisioning_profile_file_id.length > 0;
 
-// if (!hasCertificate || !hasProvisioningProfile) {
-//   log.warn("⚠️ iOS custom signing credentials are NOT configured for this app. Skipping code signing setup.");
-//   process.exit(0);
-// }
+if (!hasCertificate || !hasProvisioningProfile) {
+  fail("❌ iOS custom signing credentials are required but not configured in app_config.json.");
+}
 
 // Helper to make authorized GET requests
 async function makeGetRequest(urlPath, isBinary = false) {
@@ -59,6 +58,13 @@ async function run() {
     await downloadFile(`${apiUrl}/builds/${buildId}/credentials?fileType=ios_provisioning_profile`, profilePath, `Bearer ${token}`, true);
     log.success("Provisioning profile successfully downloaded.");
 
+    if (!fs.existsSync(certPath) || fs.statSync(certPath).size === 0) {
+      fail("❌ iOS signing certificate (.p12) is missing or empty after download.");
+    }
+    if (!fs.existsSync(profilePath) || fs.statSync(profilePath).size === 0) {
+      fail("❌ iOS provisioning profile (.mobileprovision) is missing or empty after download.");
+    }
+
     // Setup temporary keychain on macOS with an absolute path
     const keychainPath = path.join(process.cwd(), "app-signing.keychain-db");
     const keychainPass = "build-pass-" + Math.random().toString(36).substring(2);
@@ -88,7 +94,7 @@ async function run() {
     log.info("Importing P12 certificate into keychain...");
     // Import using execSync but catch error securely to avoid password leaks
     try {
-      execSync(`security import "${certPath}" -k "${keychainPath}" -A -T /usr/bin/codesign`, { stdio: 'ignore' });
+      execSync(`security import "${certPath}" -k "${keychainPath}" -P "${certificatePassword}" -A -T /usr/bin/codesign`, { stdio: 'ignore' });
     } catch (err) {
       fail("Failed to import the P12 certificate. Please verify that the password is correct.");
     }

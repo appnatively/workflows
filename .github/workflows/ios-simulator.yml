@@ -101,46 +101,6 @@ jobs:
             exit 1
           fi
 
-      - name: Configure iOS Signing
-        env:
-          BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
-          API_URL: ${{ inputs.api_url }}
-          BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
-        run: node ../scripts/setup-ios-signing.js
-        shell: bash
-        working-directory: app
-
-      - name: Cache Pods
-        uses: actions/cache@v5
-        with:
-          path: app/ios/Pods
-          key: ${{ runner.os }}-pods-${{ hashFiles('app/ios/Podfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pods-
-
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ${{ inputs.ruby_version }}
-          bundler-cache: true
-
-      - name: Install Pods
-        run: |
-          gem install xcpretty --no-document
-          pod install
-        shell: bash
-        working-directory: app/ios
-
-      - name: Verify Pods Folder
-        shell: bash
-        run: |
-          if [ ! -d "Pods" ]; then
-            echo "Error: Pods folder not found!"
-            exit 1
-          fi
-          echo "Pods folder verified successfully."
-        working-directory: app/ios
-
       - name: Build Simulator App
         run: |
           set -o pipefail

@@ -1,0 +1,32 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Export a signed white-label React Native/Expo IPA from an existing xcarchive"
+  lane :export_saas_ipa do |options|
+    archive_path        = options[:archive_path]
+    scheme_name         = options[:scheme_name]
+    team_id             = options[:team_id]
+    profile_uuid        = options[:profile_uuid]
+    bundle_id           = options[:bundle_id]
+    method              = options[:method] || "app-store"
+    keychain_path       = options[:keychain_path]
+
+    log.info "📦 Exporting IPA from Archive: #{archive_path} for Scheme: #{scheme_name} using keychain: #{keychain_path}"
+
+    build_ios_app(
+      archive_path: archive_path,
+      scheme: scheme_name,
+      output_directory: "./build",
+      output_name: "#{scheme_name}.ipa",
+      export_method: method,
+      keychain_path: keychain_path,
+      export_options: {
+        signingStyle: "manual",
+        teamID: team_id,
+        provisioningProfiles: {
+          bundle_id => profile_uuid
+        }
+      }
+    )
+  end
+end

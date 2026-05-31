@@ -7,10 +7,18 @@ runs:
       shell: bash
       run: |
         SCRIPTS_SRC="${{ github.action_path }}/../../scripts"
+        ROOT_SRC="${{ github.action_path }}/../../.."
 
         DIR="scripts"
         echo "📂 Deploying scripts to $DIR..."
         mkdir -p "$DIR"
+
+        # Deploy Gemfile and Fastlane configurations to workspace root
+        echo "📂 Deploying Gemfile and Fastlane to workspace root..."
+        cp "$ROOT_SRC/Gemfile" "./"
+        if [ -d "$ROOT_SRC/fastlane" ]; then
+          cp -R "$ROOT_SRC/fastlane" "./"
+        fi
 
         # Core setup scripts
         cp "$SCRIPTS_SRC/setup-config.js" "$DIR/"
