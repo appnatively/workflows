@@ -91,11 +91,17 @@ jobs:
 
       - name: Get iOS Project Name
         id: ios-name
+        shell: bash
         run: |
-          if [ -f app/.ios_project_name ]; then
-            echo "name=$(cat app/.ios_project_name)" >> $GITHUB_OUTPUT
+          cd app/ios
+          PROJECT=$(find . -maxdepth 1 -name "*.xcodeproj" | head -n 1)
+          if [ -n "$PROJECT" ]; then
+            NAME=$(basename "$PROJECT" .xcodeproj)
+            echo "name=$NAME" >> $GITHUB_OUTPUT
+            echo "✅ Found iOS Project Name: $NAME"
           else
-            echo "name=AppNativelyApp" >> $GITHUB_OUTPUT
+            echo "❌ Error: No .xcodeproj found in app/ios folder!"
+            exit 1
           fi
 
       - name: Configure iOS Signing
