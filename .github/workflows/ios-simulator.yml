@@ -32,6 +32,11 @@ jobs:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
     steps:
+      - name: Set up Xcode version
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.2'
+
       - name: Deploy Scripts
         uses: appnatively/workflows/.github/actions/setup-scripts@master
 
