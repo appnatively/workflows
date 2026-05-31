@@ -8,10 +8,28 @@ function applySigningExemptionsAndInstall() {
   if (fs.existsSync(podfilePath)) {
     log.process("💉 Injecting CocoaPods target signing exemptions into Podfile...");
     
-    const postInstallHook = `
-# ==========================================
-# Dynamic SaaS Builder Code Signing Patch
-# ==========================================
+    try {
+      let podfileContent = fs.readFileSync(podfilePath, 'utf8');
+      
+      const patch = `post_install do |installer|
+  # ==========================================
+  # Dynamic SaaS Builder Code Signing Patch
+  # ==========================================
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+      config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
+    end
+  end`;
+      
+      // Inject inside the existing post_install hook robustly
+      if (podfileContent.includes('post_install do |installer|')) {
+        podfileContent = podfileContent.replace('post_install do |installer|', patch);
+        fs.writeFileSync(podfilePath, podfileContent, 'utf8');
+        log.success("Signing exemptions successfully injected inside existing post_install block.");
+      } else {
+        // Fallback: If no existing post_install block, append a new one
+        const fallbackHook = `
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
@@ -21,9 +39,9 @@ post_install do |installer|
   end
 end
 `;
-    try {
-      fs.appendFileSync(podfilePath, postInstallHook);
-      log.success("Signing exemptions successfully injected in Podfile.");
+        fs.appendFileSync(podfilePath, fallbackHook);
+        log.success("No existing post_install block found. Appended new hook to Podfile.");
+      }
     } catch (err) {
       fail(`Failed to write signing exemptions to Podfile: ${err.message}`);
     }
