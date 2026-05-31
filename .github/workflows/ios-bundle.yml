@@ -167,8 +167,8 @@ jobs:
 
       - name: Create IPA (via Fastlane)
         run: |
+          cp -R ../../fastlane ./fastlane
           bundle exec fastlane ios export_saas_ipa \
-            --fastfile ../../fastlane/Fastfile \
             archive_path:"build/${{ steps.ios-name.outputs.name }}.xcarchive" \
             scheme_name:"${{ steps.ios-name.outputs.name }}" \
             team_id:"$IOS_TEAM_ID" \
