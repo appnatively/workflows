@@ -33,7 +33,7 @@ jobs:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
     steps:
-      - name: Setup Scripts
+      - name: Deploy Scripts
         uses: appnatively/workflows/.github/actions/setup-scripts@master
 
       - name: Setup Configuration
@@ -47,6 +47,9 @@ jobs:
       - name: Download from R2
         run: node ./scripts/download-r2.js
         shell: bash
+
+      - name: Deploy Scripts to App
+        uses: appnatively/workflows/.github/actions/setup-scripts@master
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4

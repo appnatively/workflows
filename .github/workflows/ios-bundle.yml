@@ -37,7 +37,7 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_26.app
         shell: bash
 
-      - name: Setup Scripts
+      - name: Deploy Scripts
         uses: appnatively/workflows/.github/actions/setup-scripts@master
 
       - name: Setup Configuration
@@ -51,6 +51,9 @@ jobs:
       - name: Download from R2
         run: node ./scripts/download-r2.js
         shell: bash
+
+      - name: Deploy Scripts to App
+        uses: appnatively/workflows/.github/actions/setup-scripts@master
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
