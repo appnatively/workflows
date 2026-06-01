@@ -147,7 +147,7 @@ jobs:
           #!/bin/bash
           set -e
           DEST="$CONFIGURATION_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
-          SRC_DIR=".."
+          SRC_DIR="."
 
           echo "🚚 [Pipeline Patch] Injecting pre-built JS bundle and assets..."
 
