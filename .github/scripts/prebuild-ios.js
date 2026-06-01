@@ -112,10 +112,14 @@ if (fs.existsSync(podfilePath)) {
     
     // Build the patch maintaining file's indentation style
     const patch = `${matchedStr}
-${indentation}  # App Store validation fix: Force dwarf format to avoid missing prebuilt dSYM failures
+${indentation}  # App Store validation & static signing fixes: Force dwarf format and disable Pod signing
 ${indentation}  installer.pods_project.targets.each do |target|
 ${indentation}    target.build_configurations.each do |config|
 ${indentation}      config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf'
+${indentation}      config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+${indentation}      config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
+${indentation}      config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ''
+${indentation}      config.build_settings['CODE_SIGN_IDENTITY'] = ''
 ${indentation}    end
 ${indentation}  end`;
 

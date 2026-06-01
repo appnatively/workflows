@@ -163,13 +163,12 @@ jobs:
           cp main.jsbundle "$APP_PATH/"
           if [ -d "assets" ]; then cp -R assets "$APP_PATH/"; fi
 
-          echo "🔐 Resealing code signature after resource injection..."
-          codesign --force \
+          echo "🔐 Resealing code signature recursively after resource injection..."
+          find "$APP_PATH" -depth -exec codesign --force \
             --sign "$IOS_CODE_SIGN_IDENTITY" \
             --keychain "$IOS_KEYCHAIN_PATH" \
             --timestamp \
-            --options=runtime \
-            "$APP_PATH"
+            --options=runtime {} \; 2>/dev/null || true
 
           zip -r ../../app-ios-archive.zip build/${{ steps.ios-name.outputs.name }}.xcarchive
         working-directory: app/ios
@@ -218,6 +217,7 @@ jobs:
           rm -f app_config.json || true
           if [ -n "$IOS_KEYCHAIN_PATH" ]; then
             echo "🔐 Deleting temporary signing keychain..."
+            security lock-keychain "$IOS_KEYCHAIN_PATH" || true
             security delete-keychain "$IOS_KEYCHAIN_PATH" || true
           fi
           if [ -n "$IOS_PROVISIONING_PROFILE_UUID" ]; then
