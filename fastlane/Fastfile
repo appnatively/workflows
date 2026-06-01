@@ -21,7 +21,6 @@ platform :ios do
       output_directory: "./build",
       output_name: "#{scheme_name}.ipa",
       export_method: method,
-      keychain_path: keychain_path,
       export_options: {
         signingStyle: "manual",
         teamID: team_id,
