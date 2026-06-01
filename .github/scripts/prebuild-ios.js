@@ -97,3 +97,36 @@ if (iosExists && !xcodeProjExists) {
   log.process("Running prebuild to create native project...");
   runCommand('npx expo prebuild --platform ios');
 }
+
+// Patch Podfile to disable dSYM generation for Pods targets (resolves React.framework missing dSYM errors on App Store)
+const podfilePath = path.join(IOS_DIR, 'Podfile');
+if (fs.existsSync(podfilePath)) {
+  log.info("Applying App Store Connect symbol upload validation fix to Podfile...");
+  let podfileContent = fs.readFileSync(podfilePath, 'utf8');
+  
+  // Use regex to locate post_install hook robustly, capturing leading indentation
+  const match = podfileContent.match(/(^[ \t]*)post_install\s+do\s+\|installer\|/m);
+  if (match) {
+    const indentation = match[1] || '';
+    const matchedStr = match[0];
+    
+    // Build the patch maintaining file's indentation style
+    const patch = `${matchedStr}
+${indentation}  # App Store validation fix: Force dwarf format to avoid missing prebuilt dSYM failures
+${indentation}  installer.pods_project.targets.each do |target|
+${indentation}    target.build_configurations.each do |config|
+${indentation}      config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf'
+${indentation}    end
+${indentation}  end`;
+
+    podfileContent = podfileContent.replace(matchedStr, patch);
+    fs.writeFileSync(podfilePath, podfileContent, 'utf8');
+    log.success("Successfully patched Podfile with robust indentation alignment.");
+    
+    log.process("Running pod install again to apply the Podfile updates...");
+    runCommand('pod install', { cwd: IOS_DIR });
+    log.success("CocoaPods dependency configuration successfully updated.");
+  } else {
+    log.warn("Warning: post_install block not found in Podfile. Skipping patch.");
+  }
+}
