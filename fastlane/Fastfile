@@ -17,6 +17,7 @@ platform :ios do
 
     build_ios_app(
       archive_path: archive_path,
+      skip_build_archive: true,
       scheme: scheme_name,
       output_directory: "./build",
       output_name: "#{scheme_name}.ipa",
