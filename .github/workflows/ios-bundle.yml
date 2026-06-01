@@ -140,7 +140,35 @@ jobs:
           fi
         shell: bash
 
+      - name: Patch React Native Xcode Script
+        shell: bash
+        run: |
+          cat << 'EOF' > node_modules/react-native/scripts/react-native-xcode.sh
+          #!/bin/bash
+          set -e
+          DEST="$CONFIGURATION_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
+          SRC_DIR=".."
 
+          echo "🚚 [Pipeline Patch] Injecting pre-built JS bundle and assets..."
+
+          if [ -f "$SRC_DIR/main.jsbundle" ]; then
+            cp "$SRC_DIR/main.jsbundle" "$DEST/main.jsbundle"
+            echo "✅ Successfully injected main.jsbundle"
+          else
+            echo "❌ Error: Pre-built main.jsbundle not found in $SRC_DIR"
+            exit 1
+          fi
+
+          if [ -d "$SRC_DIR/assets" ]; then
+            # Clean old assets if any exist to prevent caching stale items
+            rm -rf "$DEST/assets"
+            cp -R "$SRC_DIR/assets" "$DEST/"
+            echo "✅ Successfully injected assets"
+          fi
+
+          echo "🎉 Pre-built resources successfully staged for Xcode packaging."
+          exit 0
+          EOF
 
       - name: Build iOS Archive
         run: |
@@ -160,13 +188,10 @@ jobs:
             PRODUCT_BUNDLE_IDENTIFIER="$IOS_BUNDLE_ID" | xcbeautify
         working-directory: app/ios
 
-      - name: Inject Pre-built JS and Zip Archive
+      - name: Generate Framework dSYMs & Zip Archive
         run: |
           APP_PATH=$(find build/${{ steps.ios-name.outputs.name }}.xcarchive/Products/Applications -name "*.app" -type d -maxdepth 1)
           if [ -z "$APP_PATH" ]; then exit 1; fi
-
-          cp main.jsbundle "$APP_PATH/"
-          if [ -d "assets" ]; then cp -R assets "$APP_PATH/"; fi
 
           echo "🛠️ Generating missing dSYMs for prebuilt frameworks..."
           FRAMEWORKS_DIR="$APP_PATH/Frameworks"
@@ -188,13 +213,6 @@ jobs:
               fi
             done
           fi
-
-          echo "🔐 Resealing code signature recursively after resource injection..."
-          find "$APP_PATH" -depth -exec codesign --force \
-            --sign "$IOS_CODE_SIGN_IDENTITY" \
-            --keychain "$IOS_KEYCHAIN_PATH" \
-            --timestamp \
-            --options=runtime {} \; 2>/dev/null || true
 
           zip -r ../../app-ios-archive.zip build/${{ steps.ios-name.outputs.name }}.xcarchive
         working-directory: app/ios
