@@ -163,6 +163,27 @@ jobs:
           cp main.jsbundle "$APP_PATH/"
           if [ -d "assets" ]; then cp -R assets "$APP_PATH/"; fi
 
+          echo "🛠️ Generating missing dSYMs for prebuilt frameworks..."
+          FRAMEWORKS_DIR="$APP_PATH/Frameworks"
+          DSYMS_DIR="build/${{ steps.ios-name.outputs.name }}.xcarchive/dSYMs"
+          mkdir -p "$DSYMS_DIR"
+
+          if [ -d "$FRAMEWORKS_DIR" ]; then
+            for fw in "$FRAMEWORKS_DIR"/*.framework; do
+              if [ -d "$fw" ]; then
+                FW_NAME=$(basename "$fw" .framework)
+                FW_BINARY="$fw/$FW_NAME"
+                if [ -f "$FW_BINARY" ]; then
+                  DSYM_PATH="$DSYMS_DIR/$FW_NAME.framework.dSYM"
+                  if [ ! -d "$DSYM_PATH" ]; then
+                    echo "📦 Generating dSYM for $FW_NAME..."
+                    dsymutil "$FW_BINARY" -o "$DSYM_PATH" 2>/dev/null || true
+                  fi
+                fi
+              fi
+            done
+          fi
+
           echo "🔐 Resealing code signature recursively after resource injection..."
           find "$APP_PATH" -depth -exec codesign --force \
             --sign "$IOS_CODE_SIGN_IDENTITY" \
