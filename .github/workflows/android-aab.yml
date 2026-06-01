@@ -76,6 +76,12 @@ jobs:
           echo "💉 Injecting dynamic environment variables into JS bundle..."
           node ../scripts/inject-env.js android/app/src/main/assets/index.android.bundle
 
+          echo "⚡ Compiling index.android.bundle to Hermes Bytecode..."
+          ../node_modules/hermes-compiler/hermesc/linux64-bin/hermesc \
+            -emit-binary \
+            -out android/app/src/main/assets/index.android.bundle \
+            android/app/src/main/assets/index.android.bundle
+
           echo "📱 Setting up App Info..."
           node ../scripts/setup-app-info.js
 
