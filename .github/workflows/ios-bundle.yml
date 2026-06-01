@@ -169,7 +169,6 @@ jobs:
           echo "🎉 Pre-built resources successfully staged for Xcode packaging."
           exit 0
           EOF
-        working-directory: app
 
       - name: Build iOS Archive
         run: |
