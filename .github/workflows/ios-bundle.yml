@@ -143,7 +143,7 @@ jobs:
       - name: Patch React Native Xcode Script
         shell: bash
         run: |
-          cat << 'EOF' > node_modules/react-native/scripts/react-native-xcode.sh
+          cat << 'EOF' > patch-script.sh
           #!/bin/bash
           set -e
           DEST="$CONFIGURATION_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
@@ -169,6 +169,14 @@ jobs:
           echo "🎉 Pre-built resources successfully staged for Xcode packaging."
           exit 0
           EOF
+
+          echo "✍️ Overwriting React Native script..."
+          cp patch-script.sh node_modules/react-native/scripts/react-native-xcode.sh
+          
+          echo "✍️ Overwriting Expo script..."
+          cp patch-script.sh node_modules/expo/scripts/react-native-xcode.sh
+          
+          rm patch-script.sh
 
       - name: Build iOS Archive
         run: |
