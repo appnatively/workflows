@@ -191,6 +191,34 @@ jobs:
         env:
           BUNDLE_GEMFILE: ../../Gemfile
 
+      - name: Generate Missing dSYMs for Dynamic Frameworks
+        run: |
+          APP_PATH="build/${{ steps.ios-name.outputs.name }}.xcarchive/Products/Applications/${{ steps.ios-name.outputs.name }}.app"
+          FRAMEWORKS_DIR="$APP_PATH/Frameworks"
+          DSYMS_DIR="build/${{ steps.ios-name.outputs.name }}.xcarchive/dSYMs"
+          mkdir -p "$DSYMS_DIR"
+
+          if [ -d "$FRAMEWORKS_DIR" ]; then
+            echo "🛠️ Generating missing dSYMs for prebuilt frameworks..."
+            for fw in "$FRAMEWORKS_DIR"/*.framework; do
+              if [ -d "$fw" ]; then
+                FW_NAME=$(basename "$fw" .framework)
+                FW_BINARY="$fw/$FW_NAME"
+                if [ -f "$FW_BINARY" ]; then
+                  DSYM_PATH="$DSYMS_DIR/$FW_NAME.framework.dSYM"
+                  if [ ! -d "$DSYM_PATH" ]; then
+                    echo "📦 Generating dSYM for $FW_NAME..."
+                    dsymutil "$FW_BINARY" -o "$DSYM_PATH" 2>/dev/null || true
+                  fi
+                fi
+              fi
+            done
+          else
+            echo "⚠️ No Frameworks directory found inside the app bundle."
+          fi
+        working-directory: app/ios
+        shell: bash
+
       - name: Zip Archive
         run: |
           zip -r ../../app-ios-archive.zip build/${{ steps.ios-name.outputs.name }}.xcarchive

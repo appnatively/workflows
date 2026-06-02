@@ -115,7 +115,6 @@ if (fs.existsSync(podfilePath)) {
 ${indentation}  # App Store validation & static signing fixes: Force dwarf format and disable Pod signing
 ${indentation}  installer.pods_project.targets.each do |target|
 ${indentation}    target.build_configurations.each do |config|
-${indentation}      config.build_settings['DEBUG_INFORMATION_FORMAT'] = config.name == 'Release' ? 'dwarf-with-dsym' : 'dwarf'
 ${indentation}      config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
 ${indentation}      config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
 ${indentation}      config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ''
