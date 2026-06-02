@@ -1,4 +1,5 @@
 require 'securerandom'
+require 'plist'
 
 default_platform(:ios)
 
@@ -17,13 +18,14 @@ platform :ios do
 
     UI.message "🏗️ Archiving & Exporting IPA for Scheme: #{scheme_name} using P12: #{cert_path} and Profile: #{profile_path}"
 
-    # Extract team ID and UUID from the mobileprovision file using Fastlane's native reader
-    profile = read_provisioning_profile(path: profile_path)
-    team_id = profile['TeamIdentifier'].first
-    profile_uuid = profile['UUID']
+    # Extract team ID and UUID from the mobileprovision file safely (preventing shell injection)
+    plist_xml = sh("security", "cms", "-D", "-i", profile_path)
+    plist = Plist.parse_xml(plist_xml)
+    team_id = plist['TeamIdentifier'].first
+    profile_uuid = plist['UUID']
     
     # Resolve code signing identity based on profile type (get-task-allow determines Development vs Distribution)
-    get_task_allow = profile['Entitlements']['get-task-allow']
+    get_task_allow = plist['Entitlements']['get-task-allow']
     code_sign_identity = get_task_allow ? "iPhone Developer" : "iPhone Distribution"
 
     UI.message "📲 Extracted from profile: Team ID = #{team_id}, UUID = #{profile_uuid}, Identity = #{code_sign_identity}"
