@@ -20,20 +20,7 @@ runs:
           cp -R "$ROOT_SRC/fastlane" "./"
         fi
 
-        # Core setup scripts
-        cp "$SCRIPTS_SRC/setup-config.js" "$DIR/"
-        cp "$SCRIPTS_SRC/download-r2.js" "$DIR/"
-        cp "$SCRIPTS_SRC/setup-app-info.js" "$DIR/"
-        cp "$SCRIPTS_SRC/setup-assets.js" "$DIR/"
-        cp "$SCRIPTS_SRC/setup-firebase.js" "$DIR/"
-        cp "$SCRIPTS_SRC/setup-keystore.js" "$DIR/"
-        cp "$SCRIPTS_SRC/setup-ios-signing.js" "$DIR/"
-        cp "$SCRIPTS_SRC/inject-env.js" "$DIR/"
-        cp "$SCRIPTS_SRC/utils.js" "$DIR/"
-        cp "$SCRIPTS_SRC/upload-google-drive.js" "$DIR/"
-
-        # Prebuild scripts
-        cp "$SCRIPTS_SRC/prebuild-android.js" "$DIR/"
-        cp "$SCRIPTS_SRC/prebuild-ios.js" "$DIR/"
+        # Deploy all helper/setup JavaScript files
+        cp "$SCRIPTS_SRC"/*.js "$DIR/"
 
         echo "✅ Script deployment complete."

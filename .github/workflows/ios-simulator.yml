@@ -25,9 +25,12 @@ on:
       BUILD_ACCESS_TOKEN:
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   build-ios-simulator:
-    runs-on: macos-latest
+    runs-on: macos-15
     env:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
@@ -152,8 +155,4 @@ jobs:
         run: |
           echo "🧹 Securely deleting configuration files..."
           rm -f app_config.json || true
-          if [ -n "$IOS_KEYCHAIN_PATH" ]; then
-            echo "🔐 Deleting temporary signing keychain..."
-            security delete-keychain "$IOS_KEYCHAIN_PATH" || true
-          fi
           echo "✅ Sanitization complete."

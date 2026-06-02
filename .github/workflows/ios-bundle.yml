@@ -25,9 +25,12 @@ on:
       BUILD_ACCESS_TOKEN:
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   build-ios:
-    runs-on: macos-latest
+    runs-on: macos-15
     env:
       NODE_OPTIONS: "--max-old-space-size=4096"
 
@@ -88,7 +91,12 @@ jobs:
           node ../scripts/inject-env.js ios/main.jsbundle
 
           echo "⚡ Compiling main.jsbundle to Hermes Bytecode..."
-          ../node_modules/hermes-compiler/hermesc/osx-bin/hermesc \
+          HERMESC=$(find ../node_modules -name hermesc -type f -path '*/osx-bin/*' | head -n 1)
+          if [ -z "$HERMESC" ]; then
+            echo "❌ Error: hermesc binary not found"
+            exit 1
+          fi
+          "$HERMESC" \
             -emit-binary \
             -out ios/main.jsbundle \
             ios/main.jsbundle
@@ -130,15 +138,6 @@ jobs:
         shell: bash
         working-directory: app
 
-      - name: Install Build Formatter
-        run: |
-          if ! command -v xcbeautify &> /dev/null; then
-            echo "🚀 xcbeautify not found. Installing via npm..."
-            npm install -g xcbeautify
-          else
-            echo "✅ xcbeautify is already pre-installed."
-          fi
-        shell: bash
 
       - name: Patch React Native Xcode Script
         shell: bash
@@ -178,75 +177,24 @@ jobs:
           
           rm patch-script.sh
 
-      - name: Build iOS Archive
-        run: |
-          set -o pipefail
-          echo "🏗️ Building SIGNED iOS Archive..."
-          xcodebuild archive \
-            -workspace ${{ steps.ios-name.outputs.name }}.xcworkspace \
-            -scheme ${{ steps.ios-name.outputs.name }} \
-            -configuration Release \
-            -archivePath build/${{ steps.ios-name.outputs.name }}.xcarchive \
-            -destination 'generic/platform=iOS' \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
-            CODE_SIGN_IDENTITY="$IOS_CODE_SIGN_IDENTITY" \
-            PROVISIONING_PROFILE_SPECIFIER="$IOS_PROVISIONING_PROFILE_UUID" \
-            PROVISIONING_PROFILE="$IOS_PROVISIONING_PROFILE_UUID" \
-            PRODUCT_BUNDLE_IDENTIFIER="$IOS_BUNDLE_ID" | xcbeautify
-        working-directory: app/ios
-
-      - name: Generate Framework dSYMs & Zip Archive
-        run: |
-          APP_PATH=$(find build/${{ steps.ios-name.outputs.name }}.xcarchive/Products/Applications -name "*.app" -type d -maxdepth 1)
-          if [ -z "$APP_PATH" ]; then exit 1; fi
-
-          echo "🛠️ Generating missing dSYMs for prebuilt frameworks..."
-          FRAMEWORKS_DIR="$APP_PATH/Frameworks"
-          DSYMS_DIR="build/${{ steps.ios-name.outputs.name }}.xcarchive/dSYMs"
-          mkdir -p "$DSYMS_DIR"
-
-          if [ -d "$FRAMEWORKS_DIR" ]; then
-            for fw in "$FRAMEWORKS_DIR"/*.framework; do
-              if [ -d "$fw" ]; then
-                FW_NAME=$(basename "$fw" .framework)
-                FW_BINARY="$fw/$FW_NAME"
-                if [ -f "$FW_BINARY" ]; then
-                  DSYM_PATH="$DSYMS_DIR/$FW_NAME.framework.dSYM"
-                  if [ ! -d "$DSYM_PATH" ]; then
-                    echo "📦 Generating dSYM for $FW_NAME..."
-                    dsymutil "$FW_BINARY" -o "$DSYM_PATH" 2>/dev/null || true
-                  fi
-                fi
-              fi
-            done
-          fi
-
-          zip -r ../../app-ios-archive.zip build/${{ steps.ios-name.outputs.name }}.xcarchive
-        working-directory: app/ios
-
-      - name: Create IPA (via Fastlane)
+      - name: Build & Export IPA (via Fastlane)
         run: |
           cp -R ../../fastlane ./fastlane
-          bundle exec fastlane ios export_saas_ipa \
+          bundle exec fastlane ios build_saas_app \
             archive_path:"build/${{ steps.ios-name.outputs.name }}.xcarchive" \
             scheme_name:"${{ steps.ios-name.outputs.name }}" \
-            team_id:"$IOS_TEAM_ID" \
-            profile_uuid:"$IOS_PROVISIONING_PROFILE_UUID" \
+            cert_path:"$IOS_CERTIFICATE_PATH" \
+            profile_path:"$IOS_PROVISIONING_PROFILE_PATH" \
             bundle_id:"$IOS_BUNDLE_ID" \
-            method:"${IOS_DISTRIBUTION_METHOD:-app-store}" \
-            keychain_path:"$IOS_KEYCHAIN_PATH"
-          
-          if [ -f build/${{ steps.ios-name.outputs.name }}.ipa ]; then
-            cp build/${{ steps.ios-name.outputs.name }}.ipa ./
-            echo "✅ Success: IPA generated and moved."
-          else
-            echo "❌ Error: IPA export failed or file not found!"
-            exit 1
-          fi
+            method:"${IOS_DISTRIBUTION_METHOD:-app-store}"
         working-directory: app/ios
         env:
           BUNDLE_GEMFILE: ../../Gemfile
+
+      - name: Zip Archive
+        run: |
+          zip -r ../../app-ios-archive.zip build/${{ steps.ios-name.outputs.name }}.xcarchive
+        working-directory: app/ios
 
       - name: Upload to Google Drive
         env:
@@ -265,15 +213,13 @@ jobs:
         if: always()
         shell: bash
         run: |
-          echo "🧹 Securely deleting configuration files..."
+          echo "🧹 Securely deleting configuration files and dynamic signing assets..."
           rm -f app_config.json || true
-          if [ -n "$IOS_KEYCHAIN_PATH" ]; then
-            echo "🔐 Deleting temporary signing keychain..."
-            security lock-keychain "$IOS_KEYCHAIN_PATH" || true
-            security delete-keychain "$IOS_KEYCHAIN_PATH" || true
+          rm -f app/app_config.json || true
+          if [ -n "$IOS_CERTIFICATE_PATH" ]; then
+            rm -f "$IOS_CERTIFICATE_PATH" || true
           fi
-          if [ -n "$IOS_PROVISIONING_PROFILE_UUID" ]; then
-            echo "🔐 Deleting temporary provisioning profile..."
-            rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/${IOS_PROVISIONING_PROFILE_UUID}.mobileprovision" || true
+          if [ -n "$IOS_PROVISIONING_PROFILE_PATH" ]; then
+            rm -f "$IOS_PROVISIONING_PROFILE_PATH" || true
           fi
           echo "✅ Sanitization complete."

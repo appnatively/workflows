@@ -1,36 +1,105 @@
+require 'securerandom'
+
 default_platform(:ios)
 
 platform :ios do
-  desc "Export a signed white-label React Native/Expo IPA from an existing xcarchive"
-  lane :export_saas_ipa do |options|
-    archive_path        = options[:archive_path]
-    scheme_name         = options[:scheme_name]
-    team_id             = options[:team_id]
-    profile_uuid        = options[:profile_uuid]
-    bundle_id           = options[:bundle_id]
-    method              = options[:method] || "app-store"
+  desc "Build, archive, and export a signed white-label React Native/Expo app"
+  lane :build_saas_app do |options|
+    cert_path        = options[:cert_path]
+    cert_password    = ENV['IOS_CERTIFICATE_PASSWORD']
+    profile_path     = options[:profile_path]
+    bundle_id        = options[:bundle_id]
+    scheme_name      = options[:scheme_name]
+    archive_path     = options[:archive_path]
+    method           = options[:method] || "app-store"
     method = "ad-hoc" if method == "adhoc"
     method = "app-store" if method == "appstore"
-    keychain_path       = options[:keychain_path]
 
-    UI.message "📦 Exporting IPA from Archive: #{archive_path} for Scheme: #{scheme_name} using keychain: #{keychain_path}"
+    UI.message "🏗️ Archiving & Exporting IPA for Scheme: #{scheme_name} using P12: #{cert_path} and Profile: #{profile_path}"
 
-    build_ios_app(
-      archive_path: archive_path,
-      skip_build_archive: true,
-      include_symbols: false,
-      scheme: scheme_name,
-      output_directory: "./build",
-      output_name: "#{scheme_name}.ipa",
-      export_method: method,
-      export_options: {
-        signingStyle: "manual",
-        teamID: team_id,
-        uploadSymbols: false,
-        provisioningProfiles: {
-          bundle_id => profile_uuid
+    # Extract team ID and UUID from the mobileprovision file using Fastlane's native reader
+    profile = read_provisioning_profile(path: profile_path)
+    team_id = profile['TeamIdentifier'].first
+    profile_uuid = profile['UUID']
+    
+    # Resolve code signing identity based on profile type (get-task-allow determines Development vs Distribution)
+    get_task_allow = profile['Entitlements']['get-task-allow']
+    code_sign_identity = get_task_allow ? "iPhone Developer" : "iPhone Distribution"
+
+    UI.message "📲 Extracted from profile: Team ID = #{team_id}, UUID = #{profile_uuid}, Identity = #{code_sign_identity}"
+
+    keychain_name = "app-signing-#{SecureRandom.hex(8)}"
+    keychain_password = SecureRandom.hex(16)
+
+    begin
+      # 1. Create a secure, temporary keychain
+      create_keychain(
+        name: keychain_name,
+        password: keychain_password,
+        default_keychain: false,
+        unlock: true,
+        timeout: 3600
+      )
+
+      # 2. Import the certificate securely (uses internal secure execution)
+      import_certificate(
+        certificate_path: cert_path,
+        certificate_password: cert_password,
+        keychain_name: keychain_name,
+        keychain_password: keychain_password
+      )
+
+      # 3. Install the provisioning profile
+      install_provisioning_profile(path: profile_path)
+
+      # 4. Safely configure signing settings directly on the project target
+      update_code_signing_settings(
+        path: "#{scheme_name}.xcodeproj",
+        use_automatic_signing: false,
+        team_id: team_id,
+        bundle_identifier: bundle_id,
+        code_sign_identity: code_sign_identity,
+        profile_uuid: profile_uuid,
+        targets: [scheme_name]
+      )
+
+      # 5. Build and Export IPA
+      build_ios_app(
+        workspace: "#{scheme_name}.xcworkspace",
+        scheme: scheme_name,
+        configuration: "Release",
+        archive_path: archive_path,
+        skip_build_archive: false,
+        include_symbols: (method == "app-store"),
+        output_directory: "./build",
+        output_name: "#{scheme_name}.ipa",
+        export_method: method,
+        export_options: {
+          signingStyle: "manual",
+          teamID: team_id,
+          uploadSymbols: (method == "app-store"),
+          provisioningProfiles: {
+            bundle_id => profile_uuid
+          }
         }
-      }
-    )
+      )
+    ensure
+      # Delete temporary keychain
+      begin
+        delete_keychain(name: keychain_name)
+      rescue => e
+        UI.message "Keychain cleanup skipped or failed: #{e.message}"
+      end
+      
+      # Delete provisioning profile from the system
+      begin
+        if profile_uuid
+          installed_profile = File.expand_path("~/Library/MobileDevice/Provisioning Profiles/#{profile_uuid}.mobileprovision")
+          File.delete(installed_profile) if File.exist?(installed_profile)
+        end
+      rescue => e
+        UI.message "Provisioning profile cleanup skipped: #{e.message}"
+      end
+    end
   end
 end
