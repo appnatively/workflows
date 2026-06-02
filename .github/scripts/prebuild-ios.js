@@ -130,6 +130,28 @@ ${indentation}  end`;
     log.process("Running pod install again to apply the Podfile updates...");
     runCommand('pod install', { cwd: IOS_DIR });
     log.success("CocoaPods dependency configuration successfully updated.");
+
+    // Dynamic Patch: Fix CocoaPods dSYM touch bug for all dynamic frameworks
+    const targetSupportDir = path.join(IOS_DIR, 'Pods', 'Target Support Files');
+    if (fs.existsSync(targetSupportDir)) {
+      log.info("Checking for CocoaPods target support scripts to patch...");
+      const targets = fs.readdirSync(targetSupportDir);
+      targets.forEach(target => {
+        const scriptPath = path.join(targetSupportDir, target, `${target}-frameworks.sh`);
+        if (fs.existsSync(scriptPath)) {
+          let scriptContent = fs.readFileSync(scriptPath, 'utf8');
+          const targetString = 'touch "${DWARF_DSYM_FOLDER_PATH}/${basename}.dSYM"';
+          if (scriptContent.includes(targetString)) {
+            scriptContent = scriptContent.replaceAll(
+              targetString,
+              'mkdir -p "${DWARF_DSYM_FOLDER_PATH}/$(dirname "${basename}")" && touch "${DWARF_DSYM_FOLDER_PATH}/${basename}.dSYM"'
+            );
+            fs.writeFileSync(scriptPath, scriptContent, 'utf8');
+            log.success(`Successfully patched CocoaPods dSYM touch bug in: ${target}-frameworks.sh`);
+          }
+        }
+      });
+    }
   } else {
     log.warn("Warning: post_install block not found in Podfile. Skipping patch.");
   }
