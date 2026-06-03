@@ -13,8 +13,6 @@ platform :ios do
     scheme_name      = options[:scheme_name]
     archive_path     = options[:archive_path]
     method           = options[:method] || "app-store"
-    method = "ad-hoc" if method == "adhoc"
-    method = "app-store" if method == "appstore"
 
     UI.message "🏗️ Archiving & Exporting IPA for Scheme: #{scheme_name} using P12: #{cert_path} and Profile: #{profile_path}"
 
