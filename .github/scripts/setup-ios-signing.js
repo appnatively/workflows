@@ -30,6 +30,7 @@ async function run() {
   const tempDir = process.env.RUNNER_TEMP || os.tmpdir();
   const certPath = path.join(tempDir, 'ios_certificate.p12');
   const profilePath = path.join(tempDir, 'profile.mobileprovision');
+  const p8Path = path.join(tempDir, 'AuthKey.p8');
 
   function cleanupFiles() {
     try {
@@ -37,6 +38,9 @@ async function run() {
     } catch (_) {}
     try {
       if (fs.existsSync(profilePath)) fs.unlinkSync(profilePath);
+    } catch (_) {}
+    try {
+      if (fs.existsSync(p8Path)) fs.unlinkSync(p8Path);
     } catch (_) {}
   }
 
@@ -49,6 +53,8 @@ async function run() {
 
     const distributionType = iosCreds.distributionType || 'app-store';
     const certificatePassword = iosCreds.certificatePassword || '';
+    const ascKeyId = iosCreds.ascKeyId || '';
+    const ascIssuerId = iosCreds.ascIssuerId || '';
 
     if (process.env.GITHUB_ACTIONS && certificatePassword) {
       console.log(`::add-mask::${certificatePassword}`);
@@ -62,11 +68,22 @@ async function run() {
     await downloadFile(`${apiUrl}/builds/${buildId}/credentials?fileType=ios_provisioning_profile`, profilePath, `Bearer ${token}`, true);
     log.success("Provisioning profile successfully downloaded.");
 
+    if (ascKeyId && ascIssuerId) {
+      log.info("📲 Downloading App Store Connect API Key (.p8)...");
+      await downloadFile(`${apiUrl}/builds/${buildId}/credentials?fileType=ios_store_key`, p8Path, `Bearer ${token}`, true);
+      log.success("App Store Connect key successfully downloaded.");
+    }
+
     if (!fs.existsSync(certPath) || fs.statSync(certPath).size === 0) {
       fail("❌ iOS signing certificate (.p12) is missing or empty after download.");
     }
     if (!fs.existsSync(profilePath) || fs.statSync(profilePath).size === 0) {
       fail("❌ iOS provisioning profile (.mobileprovision) is missing or empty after download.");
+    }
+    if (ascKeyId && ascIssuerId) {
+      if (!fs.existsSync(p8Path) || fs.statSync(p8Path).size === 0) {
+        fail("❌ App Store Connect key (.p8) is missing or empty after download.");
+      }
     }
 
     const bundleId = config.package_id || '';
@@ -78,6 +95,15 @@ async function run() {
       fs.appendFileSync(process.env.GITHUB_ENV, `IOS_CERTIFICATE_PASSWORD=${certificatePassword}\n`);
       fs.appendFileSync(process.env.GITHUB_ENV, `IOS_BUNDLE_ID=${bundleId}\n`);
       fs.appendFileSync(process.env.GITHUB_ENV, `IOS_DISTRIBUTION_METHOD=${distributionType}\n`);
+      if (ascKeyId) {
+        fs.appendFileSync(process.env.GITHUB_ENV, `APP_STORE_CONNECT_KEY_ID=${ascKeyId}\n`);
+      }
+      if (ascIssuerId) {
+        fs.appendFileSync(process.env.GITHUB_ENV, `APP_STORE_CONNECT_ISSUER_ID=${ascIssuerId}\n`);
+      }
+      if (fs.existsSync(p8Path)) {
+        fs.appendFileSync(process.env.GITHUB_ENV, `APP_STORE_CONNECT_KEY_FILEPATH=${p8Path}\n`);
+      }
       log.success("Signing paths successfully exported to GITHUB_ENV.");
     }
 

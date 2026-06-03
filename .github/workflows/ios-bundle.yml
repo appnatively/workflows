@@ -250,4 +250,10 @@ jobs:
           if [ -n "$IOS_PROVISIONING_PROFILE_PATH" ]; then
             rm -f "$IOS_PROVISIONING_PROFILE_PATH" || true
           fi
+          if [ -n "$APP_STORE_CONNECT_KEY_FILEPATH" ]; then
+            rm -f "$APP_STORE_CONNECT_KEY_FILEPATH" || true
+          fi
+          echo "APP_STORE_CONNECT_KEY_ID=" >> $GITHUB_ENV
+          echo "APP_STORE_CONNECT_ISSUER_ID=" >> $GITHUB_ENV
+          echo "APP_STORE_CONNECT_KEY_FILEPATH=" >> $GITHUB_ENV
           echo "✅ Sanitization complete."
