@@ -98,6 +98,7 @@ jobs:
           fi
           "$HERMESC" \
             -emit-binary \
+            -w \
             -out ios/main.jsbundle \
             ios/main.jsbundle
 

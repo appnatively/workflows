@@ -85,6 +85,7 @@ jobs:
           echo "⚡ Compiling index.android.bundle to Hermes Bytecode..."
           ../node_modules/hermes-compiler/hermesc/linux64-bin/hermesc \
             -emit-binary \
+            -w \
             -out android/app/src/main/assets/index.android.bundle \
             android/app/src/main/assets/index.android.bundle
 
