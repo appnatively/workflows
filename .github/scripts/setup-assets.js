@@ -42,7 +42,7 @@ async function run() {
   const apiUrl = config.expo_public_api_url;
   const appId = config.expo_public_app_id;
   if (apiUrl && appId) {
-    const configUrl = `${apiUrl}/api/${appId}/config`;
+    const configUrl = `${apiUrl}/${appId}/config`;
     log.info(`Fetching default app layout configuration from ${configUrl}...`);
     try {
       const layoutData = await request(configUrl);
