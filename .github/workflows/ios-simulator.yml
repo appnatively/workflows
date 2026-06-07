@@ -85,7 +85,7 @@ jobs:
           node ../scripts/setup-app-info.js
 
           echo "🔥 Setting up Firebase..."
-          node ../scripts/setup-firebase.js
+          node ../scripts/setup-firebase.js ios
         shell: bash
         working-directory: app
 

@@ -18,6 +18,10 @@ on:
         required: false
         type: string
         default: 'both'
+      deploy_action:
+        required: false
+        type: string
+        default: 'build-only'
       build_id:
         required: true
         type: string
@@ -44,7 +48,7 @@ jobs:
 
   android-aab:
     name: Android AAB
-    if: ${{ (inputs.platform == 'android' || inputs.platform == 'both') && (inputs.android_type == 'aab' || inputs.android_type == 'both') }}
+    if: ${{ (inputs.platform == 'android' || inputs.platform == 'both') && inputs.deploy_action == 'build-deploy' && (inputs.android_type == 'aab' || inputs.android_type == 'both') }}
     uses: appnatively/workflows/.github/workflows/android-aab.yml@master
     secrets:
       BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
@@ -56,7 +60,7 @@ jobs:
 
   android-apk:
     name: Android APK
-    if: ${{ (inputs.platform == 'android' || inputs.platform == 'both') && (inputs.android_type == 'apk' || inputs.android_type == 'both') }}
+    if: ${{ (inputs.platform == 'android' || inputs.platform == 'both') && (inputs.deploy_action == 'build-only' || inputs.android_type == 'apk' || inputs.android_type == 'both') }}
     uses: appnatively/workflows/.github/workflows/android-apk.yml@master
     secrets:
       BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}

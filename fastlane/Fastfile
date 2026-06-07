@@ -97,16 +97,40 @@ platform :ios do
         }
       )
 
-      # 6. Upload to TestFlight if API Key is set
+      # 6. Upload to target destination if API Key is set
       if api_key
-        UI.message "🚀 Uploading to TestFlight..."
-        upload_to_testflight(
-          api_key: api_key,
-          ipa: "./build/#{scheme_name}.ipa",
-          skip_waiting_for_build_processing: true
-        )
+        ios_track = ENV['IOS_TRACK'] || 'testflight-internal'
+        changelog_text = ENV['APP_BUILD_CHANGELOG'] || "No changelog provided."
+
+        if ios_track == 'app-store'
+          UI.message "🚀 Uploading to App Store Connect (Production)..."
+          upload_to_app_store(
+            api_key: api_key,
+            ipa: "./build/#{scheme_name}.ipa",
+            skip_metadata: true,
+            skip_screenshots: true,
+            submit_for_review: false
+          )
+        elsif ios_track == 'testflight-external'
+          UI.message "🚀 Uploading to TestFlight (External Testers)..."
+          upload_to_testflight(
+            api_key: api_key,
+            ipa: "./build/#{scheme_name}.ipa",
+            distribute_external: true,
+            skip_waiting_for_build_processing: false,
+            changelog: changelog_text
+          )
+        else
+          UI.message "🚀 Uploading to TestFlight (Internal Testers)..."
+          upload_to_testflight(
+            api_key: api_key,
+            ipa: "./build/#{scheme_name}.ipa",
+            skip_waiting_for_build_processing: true,
+            changelog: changelog_text
+          )
+        end
       else
-        UI.message "⚠️ App Store Connect credentials not provided. Skipping TestFlight upload."
+        UI.message "⚠️ App Store Connect credentials not provided. Skipping upload."
       end
     ensure
       # Delete temporary keychain
@@ -126,5 +150,27 @@ platform :ios do
         UI.message "Provisioning profile cleanup skipped: #{e.message}"
       end
     end
+  end
+end
+
+platform :android do
+  desc "Upload signed App Bundle (AAB) to Google Play Console"
+  lane :upload_play_store do |options|
+    changelog_text = ENV['APP_BUILD_CHANGELOG']
+    if changelog_text && !changelog_text.strip.empty?
+      UI.message "📝 Writing Android changelog to metadata files..."
+      ['en-US', 'en-GB'].each do |locale|
+        path = "fastlane/metadata/android/#{locale}/changelogs"
+        FileUtils.mkdir_p(path)
+        File.write("#{path}/default.txt", changelog_text)
+      end
+    end
+
+    upload_to_play_store(
+      package_name: options[:package_name],
+      aab: options[:aab_path],
+      track: ENV['ANDROID_TRACK'] || 'internal',
+      json_key: ENV['ANDROID_PUBLISH_JSON_PATH']
+    )
   end
 end

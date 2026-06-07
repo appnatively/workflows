@@ -105,7 +105,7 @@ jobs:
           node ../scripts/setup-app-info.js
 
           echo "🔥 Setting up Firebase..."
-          node ../scripts/setup-firebase.js
+          node ../scripts/setup-firebase.js ios
         shell: bash
         working-directory: app
 
@@ -256,4 +256,5 @@ jobs:
           echo "APP_STORE_CONNECT_KEY_ID=" >> $GITHUB_ENV
           echo "APP_STORE_CONNECT_ISSUER_ID=" >> $GITHUB_ENV
           echo "APP_STORE_CONNECT_KEY_FILEPATH=" >> $GITHUB_ENV
+          echo "APP_BUILD_CHANGELOG=" >> $GITHUB_ENV
           echo "✅ Sanitization complete."

@@ -1,5 +1,3 @@
-const fs = require('fs');
-const path = require('path');
 const { downloadFile, log, fail } = require('./utils');
 
 const apiUrl = process.env.API_URL;
@@ -14,7 +12,9 @@ if (!apiUrl || !token) {
   fail("API_URL or BUILD_ACCESS_TOKEN not found in environment.");
 }
 
-log.firebase(`Setting up Firebase configuration in ${process.cwd()}...`);
+const platformType = process.argv[2]; // 'android' or 'ios'
+
+log.firebase(`Setting up Firebase configuration in ${process.cwd()} for platform: ${platformType || 'both'}...`);
 
 async function downloadCredential(fileType, dest) {
   const url = `${apiUrl}/builds/${buildId}/credentials?fileType=${fileType}`;
@@ -27,36 +27,20 @@ async function downloadCredential(fileType, dest) {
       return true;
     }
   } catch (err) {
-    log.info(`No ${fileType} configuration found or configured (Error: ${err.message}).`);
+    fail(`❌ Failed to download required ${fileType} configuration (Error: ${err.message}).`);
   }
   return false;
 }
 
 async function run() {
-  // 1. Download Android Firebase configuration (google-services.json)
-  const androidDownloaded = await downloadCredential('firebase_android', 'google-services.json');
-  if (androidDownloaded) {
-    // Copy to native paths if they exist
-    if (fs.existsSync('android/app') && fs.lstatSync('android/app').isDirectory()) {
-      fs.copyFileSync('google-services.json', 'android/app/google-services.json');
-      log.success('Copied google-services.json to android/app/');
-    } else if (path.basename(process.cwd()) === 'android' && fs.existsSync('app') && fs.lstatSync('app').isDirectory()) {
-      fs.copyFileSync('google-services.json', 'app/google-services.json');
-      log.success('Copied google-services.json to app/');
-    }
+  if (!platformType || platformType === 'android') {
+    // 1. Download Android Firebase configuration (google-services.json)
+    await downloadCredential('firebase_android', 'google-services.json');
   }
 
-  // 2. Download iOS Firebase configuration (GoogleService-Info.plist)
-  const iosDownloaded = await downloadCredential('firebase_ios', 'GoogleService-Info.plist');
-  if (iosDownloaded) {
-    // Copy to native paths if they exist
-    if (fs.existsSync('ios/app') && fs.lstatSync('ios/app').isDirectory()) {
-      fs.copyFileSync('GoogleService-Info.plist', 'ios/app/GoogleService-Info.plist');
-      log.success('Copied GoogleService-Info.plist to ios/app/');
-    } else if (path.basename(process.cwd()) === 'ios' && fs.existsSync('app') && fs.lstatSync('app').isDirectory()) {
-      fs.copyFileSync('GoogleService-Info.plist', 'app/GoogleService-Info.plist');
-      log.success('Copied GoogleService-Info.plist to app/');
-    }
+  if (!platformType || platformType === 'ios') {
+    // 2. Download iOS Firebase configuration (GoogleService-Info.plist)
+    await downloadCredential('firebase_ios', 'GoogleService-Info.plist');
   }
 
   log.firebase("Firebase configuration complete.");

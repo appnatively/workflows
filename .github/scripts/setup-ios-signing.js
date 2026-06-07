@@ -68,7 +68,9 @@ async function run() {
     await downloadFile(`${apiUrl}/builds/${buildId}/credentials?fileType=ios_provisioning_profile`, profilePath, `Bearer ${token}`, true);
     log.success("Provisioning profile successfully downloaded.");
 
-    if (ascKeyId && ascIssuerId) {
+    const deployAction = config.deploy_action || 'build-only';
+
+    if (deployAction === 'build-deploy' && ascKeyId && ascIssuerId) {
       log.info("📲 Downloading App Store Connect API Key (.p8)...");
       await downloadFile(`${apiUrl}/builds/${buildId}/credentials?fileType=ios_store_key`, p8Path, `Bearer ${token}`, true);
       log.success("App Store Connect key successfully downloaded.");
@@ -80,13 +82,15 @@ async function run() {
     if (!fs.existsSync(profilePath) || fs.statSync(profilePath).size === 0) {
       fail("❌ iOS provisioning profile (.mobileprovision) is missing or empty after download.");
     }
-    if (ascKeyId && ascIssuerId) {
+    if (deployAction === 'build-deploy' && ascKeyId && ascIssuerId) {
       if (!fs.existsSync(p8Path) || fs.statSync(p8Path).size === 0) {
         fail("❌ App Store Connect key (.p8) is missing or empty after download.");
       }
     }
 
     const bundleId = config.package_id || '';
+    const changelog = config.changelog || '';
+    const iosTrack = config.ios_track || 'testflight-internal';
 
     // Export variables to GitHub Actions environment
     if (process.env.GITHUB_ENV) {
@@ -95,14 +99,22 @@ async function run() {
       fs.appendFileSync(process.env.GITHUB_ENV, `IOS_CERTIFICATE_PASSWORD=${certificatePassword}\n`);
       fs.appendFileSync(process.env.GITHUB_ENV, `IOS_BUNDLE_ID=${bundleId}\n`);
       fs.appendFileSync(process.env.GITHUB_ENV, `IOS_DISTRIBUTION_METHOD=${distributionType}\n`);
-      if (ascKeyId) {
-        fs.appendFileSync(process.env.GITHUB_ENV, `APP_STORE_CONNECT_KEY_ID=${ascKeyId}\n`);
+      fs.appendFileSync(process.env.GITHUB_ENV, `IOS_TRACK=${iosTrack}\n`);
+      
+      if (deployAction === 'build-deploy') {
+        if (ascKeyId) {
+          fs.appendFileSync(process.env.GITHUB_ENV, `APP_STORE_CONNECT_KEY_ID=${ascKeyId}\n`);
+        }
+        if (ascIssuerId) {
+          fs.appendFileSync(process.env.GITHUB_ENV, `APP_STORE_CONNECT_ISSUER_ID=${ascIssuerId}\n`);
+        }
+        if (fs.existsSync(p8Path)) {
+          fs.appendFileSync(process.env.GITHUB_ENV, `APP_STORE_CONNECT_KEY_FILEPATH=${p8Path}\n`);
+        }
       }
-      if (ascIssuerId) {
-        fs.appendFileSync(process.env.GITHUB_ENV, `APP_STORE_CONNECT_ISSUER_ID=${ascIssuerId}\n`);
-      }
-      if (fs.existsSync(p8Path)) {
-        fs.appendFileSync(process.env.GITHUB_ENV, `APP_STORE_CONNECT_KEY_FILEPATH=${p8Path}\n`);
+      
+      if (changelog) {
+        fs.appendFileSync(process.env.GITHUB_ENV, `APP_BUILD_CHANGELOG<<EOF\n${changelog}\nEOF\n`);
       }
       log.success("Signing paths successfully exported to GITHUB_ENV.");
     }
