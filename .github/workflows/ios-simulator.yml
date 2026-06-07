@@ -117,16 +117,16 @@ jobs:
             -scheme ${{ steps.ios-name.outputs.name }} \
             -configuration Debug \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            -destination 'platform=iOS Simulator' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO | xcpretty
+            CODE_SIGNING_REQUIRED=NO 2>&1 | tee build.log | xcpretty
         working-directory: app/ios
 
       - name: Zip Simulator App
         run: |
           cd build/Build/Products/Debug-iphonesimulator
-          zip -r ../../../../${{ steps.ios-name.outputs.name }}-simulator.app.zip *.app
+          zip -r ../../../../../../app-ios-simulator.zip *.app
         working-directory: app/ios
 
       - name: Upload Build Log on Failure

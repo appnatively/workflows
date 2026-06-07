@@ -133,7 +133,7 @@ jobs:
         working-directory: app/android
 
       # 🏗️ Build APK without re-bundling JavaScript
-      - name: Build Release APK (unsigned) - Using Pre-built Bundle
+      - name: Build Release APK (Signed) - Using Pre-built Bundle
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease \

@@ -147,7 +147,7 @@ jobs:
           EOF
         working-directory: app/android
 
-      - name: Build Release AAB (unsigned)
+      - name: Build Release AAB (Signed)
         run: |
           chmod +x gradlew
           ./gradlew bundleRelease \

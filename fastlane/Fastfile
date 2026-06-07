@@ -1,5 +1,6 @@
 require 'securerandom'
 require 'plist'
+require 'fileutils'
 
 default_platform(:ios)
 
@@ -42,6 +43,8 @@ platform :ios do
             issuer_id: ENV['APP_STORE_CONNECT_ISSUER_ID'],
             key_filepath: ENV['APP_STORE_CONNECT_KEY_FILEPATH']
           )
+        else
+          UI.error "❌ App Store Connect credentials partially provided, but APP_STORE_CONNECT_KEY_FILEPATH is missing or invalid. skipping upload."
         end
       end
 
@@ -160,7 +163,7 @@ platform :android do
     if changelog_text && !changelog_text.strip.empty?
       UI.message "📝 Writing Android changelog to metadata files..."
       ['en-US', 'en-GB'].each do |locale|
-        path = "fastlane/metadata/android/#{locale}/changelogs"
+        path = "metadata/android/#{locale}/changelogs"
         FileUtils.mkdir_p(path)
         File.write("#{path}/default.txt", changelog_text)
       end
