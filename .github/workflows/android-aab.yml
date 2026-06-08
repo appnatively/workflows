@@ -30,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: "--max-old-space-size=4096"
+      BUNDLE_FORCE_RUBY_PLATFORM: "true"
 
     steps:
       - name: Deploy Scripts

@@ -33,6 +33,7 @@ jobs:
     runs-on: macos-15
     env:
       NODE_OPTIONS: "--max-old-space-size=4096"
+      BUNDLE_FORCE_RUBY_PLATFORM: "true"
 
     steps:
       - name: Set up Xcode version
