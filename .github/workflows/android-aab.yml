@@ -109,6 +109,8 @@ jobs:
           cache-disabled: false
 
       - name: Expo Prebuild
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: node ../scripts/prebuild-android.js
         shell: bash
         working-directory: app

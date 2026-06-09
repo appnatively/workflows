@@ -90,6 +90,8 @@ jobs:
         working-directory: app
 
       - name: Expo Prebuild
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: node ../scripts/prebuild-ios.js
         shell: bash
         working-directory: app
