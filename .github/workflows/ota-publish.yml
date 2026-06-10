@@ -1,0 +1,117 @@
+name: OTA Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      ota_update_id:
+        description: 'OTA Update ID (from AppNatively D1)'
+        required: true
+        type: string
+      api_url:
+        description: 'AppNatively backend URL (e.g. https://api.appnatively.com/api)'
+        required: true
+        type: string
+      platform:
+        description: 'Target platform: ios | android'
+        required: true
+        type: string
+    secrets:
+      BUILD_ACCESS_TOKEN:
+        required: true
+
+jobs:
+  # ── Android (ubuntu-latest, linux64 hermesc) ─────────────────────────────
+  android:
+    name: Android OTA Bundle
+    if: ${{ inputs.platform == 'android' }}
+    runs-on: ubuntu-latest
+    env:
+      OTA_UPDATE_ID: ${{ inputs.ota_update_id }}
+      API_URL: ${{ inputs.api_url }}
+      BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
+      NODE_OPTIONS: "--max-old-space-size=4096"
+    steps:
+      - name: Deploy Scripts
+        uses: appnatively/workflows/.github/actions/setup-scripts@master
+
+      - name: Setup OTA Config
+        run: node ./scripts/setup-ota-config.js
+
+      - name: Download Source Bundle from R2
+        run: node ./scripts/download-r2.js
+
+      - name: Install hermes-engine
+        run: npm install hermes-engine --no-save --prefix ./hermes-install
+
+      - name: Inject Env & Compile to Hermes (Android)
+        run: |
+          BUNDLE=app/android/app/src/main/assets/index.android.bundle
+          echo "💉 Injecting env vars..."
+          node ./scripts/inject-env.js "$BUNDLE"
+          echo "⚡ Compiling to Hermes bytecode (linux64)..."
+          ./hermes-install/node_modules/hermes-engine/linux64-bin/hermesc \
+            -emit-binary -w -out "$BUNDLE" "$BUNDLE"
+
+      - name: Generate OTA Metadata
+        env:
+          PLATFORM: android
+        run: node ./scripts/generate-ota-metadata.js
+
+      - name: Upload OTA Bundle
+        run: node ./scripts/upload-ota.js
+
+      - name: Report Failure to Backend
+        if: failure()
+        run: node ./scripts/report-ota-failure.js "Android OTA bundle job failed"
+
+      - name: Security Cleanup
+        if: always()
+        run: rm -f app_config.json || true
+
+  # ── iOS (macos-15, osx hermesc) ──────────────────────────────────────────
+  ios:
+    name: iOS OTA Bundle
+    if: ${{ inputs.platform == 'ios' }}
+    runs-on: macos-15
+    env:
+      OTA_UPDATE_ID: ${{ inputs.ota_update_id }}
+      API_URL: ${{ inputs.api_url }}
+      BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
+      NODE_OPTIONS: "--max-old-space-size=4096"
+    steps:
+      - name: Deploy Scripts
+        uses: appnatively/workflows/.github/actions/setup-scripts@master
+
+      - name: Setup OTA Config
+        run: node ./scripts/setup-ota-config.js
+
+      - name: Download Source Bundle from R2
+        run: node ./scripts/download-r2.js
+
+      - name: Install hermes-engine
+        run: npm install hermes-engine --no-save --prefix ./hermes-install
+
+      - name: Inject Env & Compile to Hermes (iOS)
+        run: |
+          BUNDLE=app/ios/main.jsbundle
+          echo "💉 Injecting env vars..."
+          node ./scripts/inject-env.js "$BUNDLE"
+          echo "⚡ Compiling to Hermes bytecode (osx)..."
+          HERMESC=$(find ./hermes-install -name hermesc -path '*/osx-bin/*' | head -n 1)
+          "$HERMESC" -emit-binary -w -out "$BUNDLE" "$BUNDLE"
+
+      - name: Generate OTA Metadata
+        env:
+          PLATFORM: ios
+        run: node ./scripts/generate-ota-metadata.js
+
+      - name: Upload OTA Bundle
+        run: node ./scripts/upload-ota.js
+
+      - name: Report Failure to Backend
+        if: failure()
+        run: node ./scripts/report-ota-failure.js "iOS OTA bundle job failed"
+
+      - name: Security Cleanup
+        if: always()
+        run: rm -f app_config.json || true
