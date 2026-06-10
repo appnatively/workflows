@@ -20,13 +20,13 @@ jobs:
   # ── Android (ubuntu-latest, linux64 hermesc) ─────────────────────────────
   android:
     name: Android OTA Bundle
-    if: ${{ inputs.platform == 'android' }}
+    if: ${{ inputs.platform == 'android' || inputs.platform == 'both' }}
     runs-on: ubuntu-latest
     env:
       OTA_UPDATE_ID: ${{ inputs.ota_update_id }}
       API_URL: ${{ inputs.api_url }}
       BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
-      PLATFORM: ${{ inputs.platform }}
+      PLATFORM: android
       NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - name: Deploy Scripts
@@ -67,13 +67,13 @@ jobs:
   # ── iOS (macos-15, osx hermesc) ──────────────────────────────────────────
   ios:
     name: iOS OTA Bundle
-    if: ${{ inputs.platform == 'ios' }}
+    if: ${{ inputs.platform == 'ios' || inputs.platform == 'both' }}
     runs-on: macos-15
     env:
       OTA_UPDATE_ID: ${{ inputs.ota_update_id }}
       API_URL: ${{ inputs.api_url }}
       BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
-      PLATFORM: ${{ inputs.platform }}
+      PLATFORM: ios
       NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - name: Deploy Scripts
