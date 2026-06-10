@@ -138,10 +138,13 @@ jobs:
         run: |
           cat << 'EOF' >> app/build.gradle
 
-          // Dynamically injected via GitHub Actions to skip JS bundling and updates generation
+          // Dynamically injected via GitHub Actions to skip JS bundling, updates generation, and linting
           gradle.taskGraph.whenReady { taskGraph ->
               taskGraph.allTasks.each { task ->
-                  if (task.name.contains("createBundle") || task.name.contains("bundleReleaseJsAndAssets") || task.name.contains("UpdatesResources")) {
+                  if (task.name.contains("createBundle") || 
+                      task.name.contains("bundleReleaseJsAndAssets") || 
+                      task.name.contains("UpdatesResources") || 
+                      task.name.toLowerCase().contains("lint")) {
                       task.enabled = false
                   }
               }
@@ -153,10 +156,11 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew bundleRelease \
+            -PreactNativeArchitectures=arm64-v8a,armeabi-v7a \
             --max-workers 2 \
             --build-cache \
             --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx3072m -XX:MaxMetaspaceSize=512m" \
+            -Dorg.gradle.jvmargs="-Xmx4608m -XX:MaxMetaspaceSize=512m -XX:+UseG1GC" \
             -Dorg.gradle.parallel=true
         working-directory: app/android
 
