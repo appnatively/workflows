@@ -123,10 +123,10 @@ jobs:
         run: |
           cat << 'EOF' >> app/build.gradle
 
-          // Dynamically injected via GitHub Actions to skip JS bundling
+          // Dynamically injected via GitHub Actions to skip JS bundling and updates generation
           gradle.taskGraph.whenReady { taskGraph ->
               taskGraph.allTasks.each { task ->
-                  if (task.name.contains("createBundle") || task.name.contains("bundleReleaseJsAndAssets")) {
+                  if (task.name.contains("createBundle") || task.name.contains("bundleReleaseJsAndAssets") || task.name.contains("UpdatesResources")) {
                       task.enabled = false
                   }
               }

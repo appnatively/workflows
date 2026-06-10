@@ -110,12 +110,32 @@ jobs:
         shell: bash
         working-directory: app
 
+      # Step 1: Backup pre-generated EXUpdates.bundle before prebuild deletes it
+      - name: Backup expo-updates Bundle
+        shell: bash
+        run: |
+          if [ -d "app/ios/EXUpdates.bundle" ]; then
+            cp -R app/ios/EXUpdates.bundle ./EXUpdates.bundle.tmp
+            echo "✅ Backed up EXUpdates.bundle"
+          fi
+
       - name: Expo Prebuild
         env:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: node ../scripts/prebuild-ios.js
         shell: bash
         working-directory: app
+
+      # Step 2: Restore EXUpdates.bundle after prebuild finishes
+      - name: Restore expo-updates Bundle
+        shell: bash
+        run: |
+          if [ -d "./EXUpdates.bundle.tmp" ]; then
+            mkdir -p app/ios
+            cp -R ./EXUpdates.bundle.tmp app/ios/EXUpdates.bundle
+            rm -rf ./EXUpdates.bundle.tmp
+            echo "✅ Restored EXUpdates.bundle"
+          fi
 
       - name: Get iOS Project Name
         id: ios-name
@@ -145,6 +165,11 @@ jobs:
       - name: Patch React Native Xcode Script
         shell: bash
         run: |
+          echo "Bypassing expo-updates script phase..."
+          mkdir -p node_modules/expo-updates/scripts
+          echo "echo 'Bypassing updates script phase'" > node_modules/expo-updates/scripts/create-updates-resources-ios.sh
+          chmod +x node_modules/expo-updates/scripts/create-updates-resources-ios.sh
+
           cat << 'EOF' > patch-script.sh
           #!/bin/bash
           set -e
@@ -166,6 +191,13 @@ jobs:
             rm -rf "$DEST/assets"
             cp -R "$SRC_DIR/assets" "$DEST/"
             echo "✅ Successfully injected assets"
+          fi
+
+          # Inject EXUpdates.bundle into build directory
+          if [ -d "$SRC_DIR/EXUpdates.bundle" ]; then
+            rm -rf "$CONFIGURATION_BUILD_DIR/EXUpdates.bundle"
+            cp -R "$SRC_DIR/EXUpdates.bundle" "$CONFIGURATION_BUILD_DIR/"
+            echo "✅ Successfully injected EXUpdates.bundle"
           fi
 
           echo "🎉 Pre-built resources successfully staged for Xcode packaging."
