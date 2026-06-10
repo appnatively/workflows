@@ -26,6 +26,7 @@ jobs:
       OTA_UPDATE_ID: ${{ inputs.ota_update_id }}
       API_URL: ${{ inputs.api_url }}
       BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
+      PLATFORM: ${{ inputs.platform }}
       NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - name: Deploy Scripts
@@ -50,8 +51,6 @@ jobs:
             -emit-binary -w -out "$BUNDLE" "$BUNDLE"
 
       - name: Generate OTA Metadata
-        env:
-          PLATFORM: android
         run: node ./scripts/generate-ota-metadata.js
 
       - name: Upload OTA Bundle
@@ -74,6 +73,7 @@ jobs:
       OTA_UPDATE_ID: ${{ inputs.ota_update_id }}
       API_URL: ${{ inputs.api_url }}
       BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
+      PLATFORM: ${{ inputs.platform }}
       NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - name: Deploy Scripts
@@ -98,8 +98,6 @@ jobs:
           "$HERMESC" -emit-binary -w -out "$BUNDLE" "$BUNDLE"
 
       - name: Generate OTA Metadata
-        env:
-          PLATFORM: ios
         run: node ./scripts/generate-ota-metadata.js
 
       - name: Upload OTA Bundle
