@@ -94,7 +94,7 @@ const expoConfig = {
   name:           config.app_name   || 'AppNatively',
   slug:           config.app_slug   || 'appnatively',
   version:        config.app_version || '0.0.1',
-  runtimeVersion: config.app_version || '0.0.1',
+  runtimeVersion: String(config.schema_version || '1'),
 };
 
 fs.writeFileSync('expoConfig.json', JSON.stringify(expoConfig, null, 2));
