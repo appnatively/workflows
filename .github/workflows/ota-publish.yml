@@ -1,18 +1,15 @@
 name: OTA Publish
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       ota_update_id:
-        description: 'OTA Update ID (from AppNatively D1)'
         required: true
         type: string
       api_url:
-        description: 'AppNatively backend URL (e.g. https://api.appnatively.com/api)'
         required: true
         type: string
       platform:
-        description: 'Target platform: ios | android'
         required: true
         type: string
     secrets:
