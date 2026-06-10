@@ -7,14 +7,27 @@
  *
  * Env: PLATFORM ('android' | 'ios'), OTA_UPDATE_ID
  */
-const fs   = require('fs');
-const path = require('path');
+const fs     = require('fs');
+const path   = require('path');
+const crypto = require('crypto');
 const { loadAppConfig, log, fail } = require('./utils');
 
 const PLATFORM = process.env.PLATFORM;
 if (!PLATFORM) fail('PLATFORM env var is required (android | ios).');
 
 const { config } = loadAppConfig();
+
+// ── Hash Helpers ─────────────────────────────────────────────────────────────
+function getSha256Base64Url(filePath) {
+  const content = fs.readFileSync(filePath);
+  const base64 = crypto.createHash('sha256').update(content).digest('base64');
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function getMd5Hex(filePath) {
+  const content = fs.readFileSync(filePath);
+  return crypto.createHash('md5').update(content).digest('hex');
+}
 
 // ── Bundle paths ────────────────────────────────────────────────────────────
 const BUNDLE_PATHS = {
@@ -61,7 +74,14 @@ const metadata = {
   fileMetadata: {
     [PLATFORM]: {
       bundle: path.relative('.', bundlePath).replace(/\\/g, '/'),
-      assets: assetFiles.map(f => ({ path: f.rel, ext: f.ext })),
+      bundleHash: getSha256Base64Url(bundlePath),
+      bundleContentMd5: getMd5Hex(bundlePath),
+      assets: assetFiles.map(f => ({
+        path: f.rel,
+        ext: f.ext,
+        hash: getSha256Base64Url(f.path),
+        contentMd5: getMd5Hex(f.path),
+      })),
     },
   },
 };
