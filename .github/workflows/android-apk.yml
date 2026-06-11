@@ -64,6 +64,14 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline --filter "./app"
         shell: bash
 
+      - name: Install hermes-compiler
+        run: |
+          mkdir -p ./hermes-install
+          cd ./hermes-install
+          pnpm init
+          pnpm add hermes-compiler@0.14.1
+        shell: bash
+
       - name: Download App Assets & Setup App Info
         env:
           BUILD_ID: ${{ inputs.build_id }}
@@ -77,7 +85,13 @@ jobs:
           node ../scripts/inject-env.js android/app/src/main/assets/index.android.bundle
 
           echo "⚡ Compiling index.android.bundle to Hermes Bytecode..."
-          ../node_modules/hermes-compiler/hermesc/linux64-bin/hermesc \
+          HERMESC=$(find ../hermes-install -name hermesc -type f -path '*/linux64-bin/*' | head -n 1)
+          if [ -z "$HERMESC" ]; then
+            echo "❌ Error: hermesc binary not found"
+            exit 1
+          fi
+          chmod +x "$HERMESC"
+          "$HERMESC" \
             -emit-binary \
             -w \
             -out android/app/src/main/assets/index.android.bundle \

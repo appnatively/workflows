@@ -78,6 +78,14 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline --filter "./app" --filter "./sdk"
         shell: bash
 
+      - name: Install hermes-compiler
+        run: |
+          mkdir -p ./hermes-install
+          cd ./hermes-install
+          pnpm init
+          pnpm add hermes-compiler@0.14.1
+        shell: bash
+
       - name: Download App Assets & Setup App Info
         env:
           BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}
@@ -91,11 +99,12 @@ jobs:
           node ../scripts/inject-env.js ios/main.jsbundle
 
           echo "⚡ Compiling main.jsbundle to Hermes Bytecode..."
-          HERMESC=$(find ../node_modules -name hermesc -type f -path '*/osx-bin/*' | head -n 1)
+          HERMESC=$(find ../hermes-install -name hermesc -type f -path '*/osx-bin/*' | head -n 1)
           if [ -z "$HERMESC" ]; then
             echo "❌ Error: hermesc binary not found"
             exit 1
           fi
+          chmod +x "$HERMESC"
           "$HERMESC" \
             -emit-binary \
             -w \

@@ -38,8 +38,17 @@ jobs:
       - name: Download Source Bundle from R2
         run: node ./scripts/download-r2.js
 
-      - name: Install hermes-engine
-        run: npm install hermes-engine --no-save --prefix ./hermes-install
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install hermes-compiler
+        run: |
+          mkdir -p ./hermes-install
+          cd ./hermes-install
+          pnpm init
+          pnpm add hermes-compiler@0.14.1
 
       - name: Inject Env & Compile to Hermes (Android)
         run: |
@@ -47,8 +56,13 @@ jobs:
           echo "💉 Injecting env vars..."
           node ./scripts/inject-env.js "$BUNDLE"
           echo "⚡ Compiling to Hermes bytecode (linux64)..."
-          ./hermes-install/node_modules/hermes-engine/linux64-bin/hermesc \
-            -emit-binary -w -out "$BUNDLE" "$BUNDLE"
+          HERMESC=$(find ./hermes-install -name hermesc -path '*/linux64-bin/*' | head -n 1)
+          if [ -z "$HERMESC" ]; then
+            echo "❌ Error: hermesc binary not found"
+            exit 1
+          fi
+          chmod +x "$HERMESC"
+          "$HERMESC" -emit-binary -w -out "$BUNDLE" "$BUNDLE"
 
       - name: Generate OTA Metadata
         run: node ./scripts/generate-ota-metadata.js
@@ -85,8 +99,17 @@ jobs:
       - name: Download Source Bundle from R2
         run: node ./scripts/download-r2.js
 
-      - name: Install hermes-engine
-        run: npm install hermes-engine --no-save --prefix ./hermes-install
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install hermes-compiler
+        run: |
+          mkdir -p ./hermes-install
+          cd ./hermes-install
+          pnpm init
+          pnpm add hermes-compiler@0.14.1
 
       - name: Inject Env & Compile to Hermes (iOS)
         run: |
@@ -95,6 +118,11 @@ jobs:
           node ./scripts/inject-env.js "$BUNDLE"
           echo "⚡ Compiling to Hermes bytecode (osx)..."
           HERMESC=$(find ./hermes-install -name hermesc -path '*/osx-bin/*' | head -n 1)
+          if [ -z "$HERMESC" ]; then
+            echo "❌ Error: hermesc binary not found"
+            exit 1
+          fi
+          chmod +x "$HERMESC"
           "$HERMESC" -emit-binary -w -out "$BUNDLE" "$BUNDLE"
 
       - name: Generate OTA Metadata
