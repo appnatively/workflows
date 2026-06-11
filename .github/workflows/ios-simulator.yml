@@ -127,7 +127,7 @@ jobs:
             -scheme ${{ steps.ios-name.outputs.name }} \
             -configuration Debug \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator' \
+            -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO 2>&1 | tee build.log | xcpretty
