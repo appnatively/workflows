@@ -68,6 +68,12 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ inputs.ruby_version }}
+          bundler-cache: true
+
       - name: Install Workspace Dependencies
         run: pnpm install --frozen-lockfile --prefer-offline --filter "./app" --filter "./sdk"
         shell: bash
@@ -89,6 +95,22 @@ jobs:
           echo "⬇️ Downloading app assets from Google Drive..."
           node ../scripts/setup-assets.js
 
+          echo "💉 Injecting dynamic environment variables into JS bundle..."
+          node ../scripts/inject-env.js ios/main.jsbundle
+
+          echo "⚡ Compiling main.jsbundle to Hermes Bytecode..."
+          HERMESC=../hermes-install/node_modules/hermes-compiler/hermesc/osx-bin/hermesc
+          if [ -z "$HERMESC" ] || [ ! -f "$HERMESC" ]; then
+            echo "❌ Error: hermesc binary not found at $HERMESC"
+            exit 1
+          fi
+          chmod +x "$HERMESC"
+          "$HERMESC" \
+            -emit-binary \
+            -w \
+            -out ios/main.jsbundle \
+            ios/main.jsbundle
+
           echo "📱 Setting up App Info..."
           node ../scripts/setup-app-info.js
 
@@ -97,12 +119,32 @@ jobs:
         shell: bash
         working-directory: app
 
+      # Step 1: Backup pre-generated EXUpdates.bundle before prebuild deletes it
+      - name: Backup expo-updates Bundle
+        shell: bash
+        run: |
+          if [ -d "app/ios/EXUpdates.bundle" ]; then
+            cp -R app/ios/EXUpdates.bundle ./EXUpdates.bundle.tmp
+            echo "✅ Backed up EXUpdates.bundle"
+          fi
+
       - name: Expo Prebuild
         env:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: node ../scripts/prebuild-ios.js
         shell: bash
         working-directory: app
+
+      # Step 2: Restore EXUpdates.bundle after prebuild finishes
+      - name: Restore expo-updates Bundle
+        shell: bash
+        run: |
+          if [ -d "./EXUpdates.bundle.tmp" ]; then
+            mkdir -p app/ios
+            cp -R ./EXUpdates.bundle.tmp app/ios/EXUpdates.bundle
+            rm -rf ./EXUpdates.bundle.tmp
+            echo "✅ Restored EXUpdates.bundle"
+          fi
 
       - name: Get iOS Project Name
         id: ios-name
@@ -118,6 +160,56 @@ jobs:
             echo "❌ Error: No .xcodeproj found in app/ios folder!"
             exit 1
           fi
+
+      - name: Patch React Native Xcode Script
+        shell: bash
+        run: |
+          echo "Bypassing expo-updates script phase..."
+          mkdir -p node_modules/expo-updates/scripts
+          echo "echo 'Bypassing updates script phase'" > node_modules/expo-updates/scripts/create-updates-resources-ios.sh
+          chmod +x node_modules/expo-updates/scripts/create-updates-resources-ios.sh
+
+          cat << 'EOF' > patch-script.sh
+          #!/bin/bash
+          set -e
+          DEST="$CONFIGURATION_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
+          SRC_DIR="."
+
+          echo "🚚 [Pipeline Patch] Injecting pre-built JS bundle and assets..."
+
+          if [ -f "$SRC_DIR/main.jsbundle" ]; then
+            cp "$SRC_DIR/main.jsbundle" "$DEST/main.jsbundle"
+            echo "✅ Successfully injected main.jsbundle"
+          else
+            echo "❌ Error: Pre-built main.jsbundle not found in $SRC_DIR"
+            exit 1
+          fi
+
+          if [ -d "$SRC_DIR/assets" ]; then
+            # Clean old assets if any exist to prevent caching stale items
+            rm -rf "$DEST/assets"
+            cp -R "$SRC_DIR/assets" "$DEST/"
+            echo "✅ Successfully injected assets"
+          fi
+
+          # Inject EXUpdates.bundle into build directory
+          if [ -d "$SRC_DIR/EXUpdates.bundle" ]; then
+            rm -rf "$CONFIGURATION_BUILD_DIR/EXUpdates.bundle"
+            cp -R "$SRC_DIR/EXUpdates.bundle" "$CONFIGURATION_BUILD_DIR/"
+            echo "✅ Successfully injected EXUpdates.bundle"
+          fi
+
+          echo "🎉 Pre-built resources successfully staged for Xcode packaging."
+          exit 0
+          EOF
+
+          echo "✍️ Overwriting React Native script..."
+          cp patch-script.sh node_modules/react-native/scripts/react-native-xcode.sh
+          
+          echo "✍️ Overwriting Expo script..."
+          cp patch-script.sh node_modules/expo/scripts/react-native-xcode.sh
+          
+          rm patch-script.sh
 
       - name: Build Simulator App
         run: |
