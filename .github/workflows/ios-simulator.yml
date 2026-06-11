@@ -222,8 +222,10 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO 2>&1 | tee build.log | xcpretty
+            CODE_SIGNING_REQUIRED=NO 2>&1 | tee build.log | bundle exec xcpretty
         working-directory: app/ios
+        env:
+          BUNDLE_GEMFILE: ../../Gemfile
 
       - name: Zip Simulator App
         run: |
