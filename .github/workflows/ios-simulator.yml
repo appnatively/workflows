@@ -72,6 +72,14 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline --filter "./app" --filter "./sdk"
         shell: bash
 
+      - name: Install hermes-compiler
+        run: |
+          mkdir -p ./hermes-install
+          cd ./hermes-install
+          pnpm init
+          pnpm add --ignore-workspace hermes-compiler@0.14.1
+        shell: bash
+
       - name: Download App Assets & Setup App Info
         env:
           BUILD_ID: ${{ github.event.inputs.build_id || inputs.build_id }}

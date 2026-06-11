@@ -69,7 +69,7 @@ jobs:
           mkdir -p ./hermes-install
           cd ./hermes-install
           pnpm init
-          pnpm add hermes-compiler@0.14.1
+          pnpm add --ignore-workspace hermes-compiler@0.14.1
         shell: bash
 
       - name: Download App Assets & Setup App Info
@@ -85,9 +85,9 @@ jobs:
           node ../scripts/inject-env.js android/app/src/main/assets/index.android.bundle
 
           echo "⚡ Compiling index.android.bundle to Hermes Bytecode..."
-          HERMESC=$(find ../hermes-install -name hermesc -type f -path '*/linux64-bin/*' | head -n 1)
-          if [ -z "$HERMESC" ]; then
-            echo "❌ Error: hermesc binary not found"
+          HERMESC=../hermes-install/node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
+          if [ -z "$HERMESC" ] || [ ! -f "$HERMESC" ]; then
+            echo "❌ Error: hermesc binary not found at $HERMESC"
             exit 1
           fi
           chmod +x "$HERMESC"
