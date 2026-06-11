@@ -202,10 +202,12 @@ jobs:
             echo "✅ Successfully injected assets"
           fi
 
-          # Inject EXUpdates.bundle into build directory
+          # Inject EXUpdates.bundle into build directory and app resources folder
           if [ -d "$SRC_DIR/EXUpdates.bundle" ]; then
             rm -rf "$CONFIGURATION_BUILD_DIR/EXUpdates.bundle"
             cp -R "$SRC_DIR/EXUpdates.bundle" "$CONFIGURATION_BUILD_DIR/"
+            rm -rf "$DEST/EXUpdates.bundle"
+            cp -R "$SRC_DIR/EXUpdates.bundle" "$DEST/"
             echo "✅ Successfully injected EXUpdates.bundle"
           fi
 
