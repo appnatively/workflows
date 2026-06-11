@@ -217,7 +217,7 @@ jobs:
           xcodebuild build \
             -workspace ${{ steps.ios-name.outputs.name }}.xcworkspace \
             -scheme ${{ steps.ios-name.outputs.name }} \
-            -configuration Debug \
+            -configuration Release \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
@@ -229,7 +229,7 @@ jobs:
 
       - name: Zip Simulator App
         run: |
-          cd build/Build/Products/Debug-iphonesimulator
+          cd build/Build/Products/Release-iphonesimulator
           zip -r ../../../../../../app-ios-simulator.zip *.app
         working-directory: app/ios
 
