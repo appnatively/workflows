@@ -56,7 +56,7 @@ jobs:
           echo "💉 Injecting env vars..."
           node ./scripts/inject-env.js "$BUNDLE"
           echo "⚡ Compiling to Hermes bytecode (linux64)..."
-          HERMESC=$(find ./hermes-install -name hermesc -path '*/linux64-bin/*' | head -n 1)
+          HERMESC=$(find -L ./hermes-install -name hermesc -path '*/linux64-bin/*' | head -n 1)
           if [ -z "$HERMESC" ]; then
             echo "❌ Error: hermesc binary not found"
             exit 1
@@ -117,7 +117,7 @@ jobs:
           echo "💉 Injecting env vars..."
           node ./scripts/inject-env.js "$BUNDLE"
           echo "⚡ Compiling to Hermes bytecode (osx)..."
-          HERMESC=$(find ./hermes-install -name hermesc -path '*/osx-bin/*' | head -n 1)
+          HERMESC=$(find -L ./hermes-install -name hermesc -path '*/osx-bin/*' | head -n 1)
           if [ -z "$HERMESC" ]; then
             echo "❌ Error: hermesc binary not found"
             exit 1
