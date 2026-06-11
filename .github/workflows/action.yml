@@ -70,17 +70,17 @@ jobs:
       java_version: ${{ inputs.java_version }}
       api_url: ${{ inputs.api_url }}
 
-  ios-bundle:
-    name: iOS Bundle
-    if: ${{ (inputs.platform == 'ios' || inputs.platform == 'both') && (inputs.ios_type == 'bundle' || inputs.ios_type == 'both') }}
-    uses: appnatively/workflows/.github/workflows/ios-bundle.yml@master
-    secrets:
-      BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
-    with:
-      build_id: ${{ inputs.build_id }}
-      node_version: ${{ inputs.node_version }}
-      ruby_version: ${{ inputs.ruby_version }}
-      api_url: ${{ inputs.api_url }}
+  # ios-bundle:
+  #   name: iOS Bundle
+  #   if: ${{ (inputs.platform == 'ios' || inputs.platform == 'both') && (inputs.ios_type == 'bundle' || inputs.ios_type == 'both') }}
+  #   uses: appnatively/workflows/.github/workflows/ios-bundle.yml@master
+  #   secrets:
+  #     BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
+  #   with:
+  #     build_id: ${{ inputs.build_id }}
+  #     node_version: ${{ inputs.node_version }}
+  #     ruby_version: ${{ inputs.ruby_version }}
+  #     api_url: ${{ inputs.api_url }}
 
   ios-simulator:
     name: iOS Simulator
