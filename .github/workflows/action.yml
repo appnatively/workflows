@@ -84,7 +84,7 @@ jobs:
 
   ios-simulator:
     name: iOS Simulator
-    if: ${{ (inputs.platform == 'ios' || inputs.platform == 'both') && (inputs.ios_type == 'simulator' || inputs.ios_type == 'both') }}
+    # if: ${{ (inputs.platform == 'ios' || inputs.platform == 'both') && (inputs.ios_type == 'simulator' || inputs.ios_type == 'both') }}
     uses: appnatively/workflows/.github/workflows/ios-simulator.yml@master
     secrets:
       BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
