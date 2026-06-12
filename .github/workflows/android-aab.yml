@@ -87,9 +87,6 @@ jobs:
           echo "⬇️ Downloading app assets from Google Drive..."
           node ../scripts/setup-assets.js
 
-          echo "💉 Injecting dynamic environment variables into JS bundle..."
-          node ../scripts/inject-env.js android/app/src/main/assets/index.android.bundle
-
           echo "⚡ Compiling index.android.bundle to Hermes Bytecode..."
           HERMESC=../hermes-install/node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
           if [ -z "$HERMESC" ] || [ ! -f "$HERMESC" ]; then

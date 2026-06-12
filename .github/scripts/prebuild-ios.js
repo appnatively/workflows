@@ -8,7 +8,8 @@ const prebuildEnv = {
   EXPO_PUBLIC_API_URL: config.expo_public_api_url,
   EXPO_PUBLIC_APP_ID: config.expo_public_app_id,
   EXPO_PUBLIC_SOCKET_URL: config.expo_public_socket_url,
-  EXPO_PUBLIC_SCHEMA_VERSION: String(config.expo_public_schema_version || '1')
+  EXPO_PUBLIC_SCHEMA_VERSION: String(config.expo_public_schema_version || '1'),
+  EXPO_PUBLIC_IS_LAUNCHER: String(config.app_type === 'launcher'),
 };
 
 
