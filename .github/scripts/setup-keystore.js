@@ -76,8 +76,6 @@ async function run() {
                 storePassword "${keystoreCreds.storePassword}"
                 keyAlias "${keystoreCreds.keyAlias}"
                 keyPassword "${keystoreCreds.keyPassword}"
-                v1SigningEnabled true
-                v2SigningEnabled true
             }
         }`;
     });
