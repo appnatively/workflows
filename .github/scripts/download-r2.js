@@ -26,7 +26,7 @@ if (!r2AccountId || !r2Bucket || !accessKeyId || !secretAccessKey || !sourceVers
 const rawAppType = config.app_type || 'app';
 const fileName = `release-assets-${rawAppType}.zip`;
 const endpoint = `https://${r2AccountId}.r2.cloudflarestorage.com`;
-const remotePath = `releases/${sourceVersion}/${fileName}`;
+const remotePath = `${sourceVersion}/${fileName}`;
 
 console.log(`🎯 Target file name: ${fileName}`);
 log.info(`Downloading ${remotePath} from R2...`);
