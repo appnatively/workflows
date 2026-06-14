@@ -12,6 +12,8 @@ const prebuildEnv = {
   EXPO_PUBLIC_IS_LAUNCHER: String(config.app_type === 'launcher'),
 };
 
+console.log("prebuildEnv", prebuildEnv)
+
 // Define directories
 const ANDROID_DIR = 'android';
 const BUILD_GRADLE = path.join(ANDROID_DIR, 'app', 'build.gradle');
