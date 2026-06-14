@@ -90,5 +90,55 @@ function patchManifest(manifestPath) {
 patchManifest(androidManifestPath);
 patchManifest(iosManifestPath);
 
+// --- 4. Overwrite expo-constants generator script ---
+try {
+  const path = require('path');
+  const expoConstantsPkgPath = require.resolve('expo-constants/package.json', { paths: [process.cwd()] });
+  const getAppConfigScriptPath = path.resolve(path.dirname(expoConstantsPkgPath), 'scripts/build/getAppConfig.js');
+
+  if (fs.existsSync(getAppConfigScriptPath)) {
+    log.info(`Patching expo-constants generator script at ${getAppConfigScriptPath}...`);
+    let scriptContent = fs.readFileSync(getAppConfigScriptPath, 'utf8');
+
+    // Check if it's already patched to prevent double patching
+    if (!scriptContent.includes('process.env.EXPO_PUBLIC_IS_LAUNCHER')) {
+      const injectContent = `// --- Start AppNatively build-time environment injection ---
+const fs = require('fs');
+const path = require('path');
+const possibleProjectRoot = process.argv[2] || process.cwd();
+
+let configPath = path.resolve(possibleProjectRoot, 'app_config.json');
+if (!fs.existsSync(configPath)) {
+  configPath = path.resolve(possibleProjectRoot, '..', 'app_config.json');
+}
+
+if (fs.existsSync(configPath)) {
+  try {
+    const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    process.env.EXPO_PUBLIC_IS_LAUNCHER = String(configData.app_type === 'launcher');
+    process.env.EXPO_PUBLIC_API_URL = configData.expo_public_api_url || '';
+    process.env.EXPO_PUBLIC_APP_ID = configData.app_id || configData.expo_public_app_id || '';
+    process.env.EXPO_PUBLIC_SOCKET_URL = configData.expo_public_socket_url || '';
+    process.env.EXPO_PUBLIC_SCHEMA_VERSION = String(configData.expo_public_schema_version || '1');
+    console.log("[expo-constants script patch] Successfully injected env variables from app_config.json");
+  } catch (err) {
+    console.error("[expo-constants script patch] Failed to inject env vars: " + err.message);
+  }
+}
+// --- End AppNatively build-time environment injection ---
+
+`;
+      fs.writeFileSync(getAppConfigScriptPath, injectContent + scriptContent, 'utf8');
+      log.success("Successfully patched expo-constants build script!");
+    } else {
+      log.info("expo-constants build script already patched, skipping.");
+    }
+  } else {
+    log.warn(`Warning: expo-constants script not found at ${getAppConfigScriptPath}`);
+  }
+} catch (err) {
+  log.warn(`Warning: Failed to resolve expo-constants: ${err.message}`);
+}
+
 log.success("App Info dynamic setup complete.");
 
