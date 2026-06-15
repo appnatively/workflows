@@ -1,16 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { loadAppConfig, runCommand, log, fail } = require('./utils');
-
-// Load App Config and construct prebuild environment variables
-const { config } = loadAppConfig();
-const prebuildEnv = {
-  EXPO_PUBLIC_API_URL: config.expo_public_api_url,
-  EXPO_PUBLIC_APP_ID: config.expo_public_app_id,
-  EXPO_PUBLIC_SOCKET_URL: config.expo_public_socket_url,
-  EXPO_PUBLIC_SCHEMA_VERSION: String(config.expo_public_schema_version || '1'),
-  EXPO_PUBLIC_IS_LAUNCHER: String(config.app_type === 'launcher'),
-};
+const { runCommand, log, fail } = require('./utils');
 
 // Define directories
 const ANDROID_DIR = 'android';
@@ -58,7 +48,7 @@ if (androidExists && !gradleExists) {
   fs.rmSync(ANDROID_DIR, { recursive: true, force: true });
   
   log.process("Running prebuild to generate clean native project...");
-  runCommand('npx expo prebuild --platform android', { env: prebuildEnv });
+  runCommand('npx expo prebuild --platform android');
   
   log.info("Restoring bundle and assets into the complete native project...");
   const destAssets = path.join(ANDROID_DIR, 'app', 'src', 'main', 'assets');
@@ -91,11 +81,11 @@ if (androidExists && !gradleExists) {
   // Scenario 2: The android folder is already fully scaffolded and complete
   log.success("Complete Android project detected.");
   log.process("Running incremental prebuild without clearing anything...");
-  runCommand('npx expo prebuild --platform android', { env: prebuildEnv });
+  runCommand('npx expo prebuild --platform android');
 
 } else {
   // Scenario 3: The android folder does not exist at all
   log.info("Android project does not exist.");
   log.process("Running prebuild to create native project...");
-  runCommand('npx expo prebuild --platform android', { env: prebuildEnv });
+  runCommand('npx expo prebuild --platform android');
 }

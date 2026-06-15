@@ -51,41 +51,41 @@ if (fs.existsSync(appConfigPath) && fs.lstatSync(appConfigPath).isFile()) {
 }
 
 // --- 3. Update app.manifest for Android and iOS ---
-const androidManifestPath = 'android/app/src/main/assets/app.manifest';
-const iosManifestPath = 'ios/EXUpdates.bundle/app.manifest';
+// const androidManifestPath = 'android/app/src/main/assets/app.manifest';
+// const iosManifestPath = 'ios/EXUpdates.bundle/app.manifest';
 
-function patchManifest(manifestPath) {
-  if (fs.existsSync(manifestPath) && fs.lstatSync(manifestPath).isFile()) {
-    log.info(`Patching manifest at ${manifestPath} with dynamic Expo config...`);
-    try {
-      const content = fs.readFileSync(manifestPath, 'utf8');
-      const manifest = JSON.parse(content);
+// function patchManifest(manifestPath) {
+//   if (fs.existsSync(manifestPath) && fs.lstatSync(manifestPath).isFile()) {
+//     log.info(`Patching manifest at ${manifestPath} with dynamic Expo config...`);
+//     try {
+//       const content = fs.readFileSync(manifestPath, 'utf8');
+//       const manifest = JSON.parse(content);
 
-      const isLauncher = config.app_type === 'launcher';
-      const expoConfig = {
-        runtimeVersion: String(config.expo_public_schema_version || '1'),
-        scheme: variables.SLUG,
-        extra: {
-          isLauncher: isLauncher,
-          apiUrl: config.expo_public_api_url,
-          appId: config.app_id || config.expo_public_app_id,
-          socketUrl: config.expo_public_socket_url,
-        }
-      };
+//       const isLauncher = config.app_type === 'launcher';
+//       const expoConfig = {
+//         runtimeVersion: String(config.expo_public_schema_version || '1'),
+//         scheme: variables.SLUG,
+//         extra: {
+//           isLauncher: isLauncher,
+//           apiUrl: config.expo_public_api_url,
+//           appId: config.app_id || config.expo_public_app_id,
+//           socketUrl: config.expo_public_socket_url,
+//         }
+//       };
 
-      manifest.extra = {
-        expoClient: expoConfig
-      };
+//       manifest.extra = {
+//         expoClient: expoConfig
+//       };
 
-      fs.writeFileSync(manifestPath, JSON.stringify(manifest), 'utf8');
-      log.success(`Successfully patched manifest: ${manifestPath}`);
-    } catch (e) {
-      log.warn(`Warning: Failed to patch manifest at ${manifestPath}: ${e.message}`);
-    }
-  } else {
-    log.info(`Manifest file not found at ${manifestPath}, skipping.`);
-  }
-}
+//       fs.writeFileSync(manifestPath, JSON.stringify(manifest), 'utf8');
+//       log.success(`Successfully patched manifest: ${manifestPath}`);
+//     } catch (e) {
+//       log.warn(`Warning: Failed to patch manifest at ${manifestPath}: ${e.message}`);
+//     }
+//   } else {
+//     log.info(`Manifest file not found at ${manifestPath}, skipping.`);
+//   }
+// }
 
-patchManifest(androidManifestPath);
-patchManifest(iosManifestPath);
+// patchManifest(androidManifestPath);
+// patchManifest(iosManifestPath);

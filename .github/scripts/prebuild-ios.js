@@ -1,17 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { loadAppConfig, runCommand, log, fail } = require('./utils');
-
-// Load App Config and construct prebuild environment variables
-const { config } = loadAppConfig();
-const prebuildEnv = {
-  EXPO_PUBLIC_API_URL: config.expo_public_api_url,
-  EXPO_PUBLIC_APP_ID: config.expo_public_app_id,
-  EXPO_PUBLIC_SOCKET_URL: config.expo_public_socket_url,
-  EXPO_PUBLIC_SCHEMA_VERSION: String(config.expo_public_schema_version || '1'),
-  EXPO_PUBLIC_IS_LAUNCHER: String(config.app_type === 'launcher'),
-};
-
+const { runCommand, log, fail } = require('./utils');
 
 // Define directories
 const IOS_DIR = 'ios';
@@ -67,7 +56,7 @@ if (iosExists && !xcodeProjExists) {
   fs.rmSync(IOS_DIR, { recursive: true, force: true });
   
   log.process("Running prebuild to generate clean native project...");
-  runCommand('npx expo prebuild --platform ios', { env: prebuildEnv });
+  runCommand('npx expo prebuild --platform ios');
   
   log.info("Restoring bundle and assets into the complete native project...");
   fs.mkdirSync(IOS_DIR, { recursive: true });
@@ -99,13 +88,13 @@ if (iosExists && !xcodeProjExists) {
   // Scenario 2: The ios folder is already fully scaffolded and complete
   log.success("Complete iOS project detected.");
   log.process("Running incremental prebuild without clearing anything...");
-  runCommand('npx expo prebuild --platform ios', { env: prebuildEnv });
+  runCommand('npx expo prebuild --platform ios');
 
 } else {
   // Scenario 3: The ios folder does not exist at all
   log.info("iOS project does not exist.");
   log.process("Running prebuild to create native project...");
-  runCommand('npx expo prebuild --platform ios', { env: prebuildEnv });
+  runCommand('npx expo prebuild --platform ios');
 }
 
 // Patch Podfile to disable dSYM generation for Pods targets (resolves React.framework missing dSYM errors on App Store)
