@@ -285,7 +285,7 @@ jobs:
         shell: bash
         run: |
           echo "🧹 Securely deleting configuration files and dynamic signing assets..."
-          rm -f app_config.json || true
+          rm -f app_config.json app/.env || true
           rm -f app/app_config.json || true
           if [ -n "$IOS_CERTIFICATE_PATH" ]; then
             rm -f "$IOS_CERTIFICATE_PATH" || true
