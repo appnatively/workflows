@@ -203,7 +203,7 @@ jobs:
         shell: bash
         run: |
           echo "🧹 Securely deleting configuration files and Google Play secrets..."
-          rm -f app_config.json app/.env || true
+          rm -f app_config.json || true
           if [ -n "$ANDROID_PUBLISH_JSON_PATH" ]; then
             rm -f "$ANDROID_PUBLISH_JSON_PATH" || true
           fi

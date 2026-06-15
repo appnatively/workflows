@@ -178,5 +178,5 @@ jobs:
         shell: bash
         run: |
           echo "🧹 Securely deleting configuration files..."
-          rm -f app_config.json app/.env || true
+          rm -f app_config.json || true
           echo "✅ Sanitization complete."

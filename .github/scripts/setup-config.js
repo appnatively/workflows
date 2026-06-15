@@ -7,7 +7,6 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 const { request, log, fail } = require('./utils');
 
 const BUILD_ACCESS_TOKEN = process.env.BUILD_ACCESS_TOKEN;
@@ -41,25 +40,6 @@ async function run() {
       config = JSON.parse(data);
     } catch (err) {
       fail(`Failed to parse configuration JSON: ${err.message}`);
-    }
-
-    // Write dynamic .env file for native build steps
-    const dotenvDir = fs.existsSync('app') ? 'app' : '.';
-    const dotenvPath = path.join(dotenvDir, '.env');
-    log.info(`Generating dynamic .env file in ${dotenvPath} for Expo CLI auto-loading...`);
-    try {
-      const envContent = [
-        `EXPO_PUBLIC_API_URL=${config.expo_public_api_url}`,
-        `EXPO_PUBLIC_APP_ID=${config.expo_public_app_id || config.app_id}`,
-        `EXPO_PUBLIC_SOCKET_URL=${config.expo_public_socket_url}`,
-        `EXPO_PUBLIC_SCHEMA_VERSION=${config.expo_public_schema_version || '1'}`,
-        `EXPO_PUBLIC_IS_LAUNCHER=${config.app_type === 'launcher'}`,
-      ].join('\n');
-      
-      fs.writeFileSync(dotenvPath, envContent, 'utf8');
-      log.success(`Dynamic .env file created successfully in ${dotenvPath}.`);
-    } catch (e) {
-      log.warn(`Warning: Failed to create dynamic .env file: ${e.message}`);
     }
 
     log.info('Masking sensitive configuration data...');
