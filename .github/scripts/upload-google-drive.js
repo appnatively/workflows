@@ -101,9 +101,7 @@ async function uploadFile(drive, filePath, folderId) {
   });
 
   const fileId = response.data.id;
-  log.success(`File uploaded successfully. ID: ${fileId}`);
 
-  log.info(`Setting public permissions...`);
   await drive.permissions.create({
     fileId: fileId,
     requestBody: {
@@ -111,6 +109,8 @@ async function uploadFile(drive, filePath, folderId) {
       type: 'anyone',
     },
   });
+
+  log.success(`File uploaded successfully`);
 
   return fileId;
 }
