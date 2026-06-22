@@ -65,14 +65,6 @@ platform :ios do
         keychain_password: keychain_password
       )
 
-      # Debug: Print the imported identities to diagnose if the certificate + private key are valid
-      UI.message "🔍 Debugging imported code signing identities..."
-      begin
-        sh("security find-identity -v -p codesigning")
-      rescue => e
-        UI.message "Failed to run security find-identity: #{e.message}"
-      end
-
       # 3. Install the provisioning profile
       install_provisioning_profile(path: profile_path)
 
