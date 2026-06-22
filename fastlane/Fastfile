@@ -52,7 +52,7 @@ platform :ios do
       create_keychain(
         name: keychain_name,
         password: keychain_password,
-        default_keychain: false,
+        default_keychain: true,
         unlock: true,
         timeout: 3600
       )
@@ -64,6 +64,14 @@ platform :ios do
         keychain_name: keychain_name,
         keychain_password: keychain_password
       )
+
+      # Debug: Print the imported identities to diagnose if the certificate + private key are valid
+      UI.message "🔍 Debugging imported code signing identities..."
+      begin
+        sh("security find-identity -v -p codesigning")
+      rescue => e
+        UI.message "Failed to run security find-identity: #{e.message}"
+      end
 
       # 3. Install the provisioning profile
       install_provisioning_profile(path: profile_path)
