@@ -8,14 +8,7 @@ platform :ios do
   desc "Build, archive, and export a signed white-label React Native/Expo app"
   lane :build_saas_app do |options|
     cert_path        = options[:cert_path]
-    
-    # Decode base64 password if available to safely support special characters
-    cert_password = ENV['IOS_CERTIFICATE_PASSWORD']
-    if ENV['IOS_CERTIFICATE_PASSWORD_BASE64'] && !ENV['IOS_CERTIFICATE_PASSWORD_BASE64'].strip.empty?
-      require 'base64'
-      cert_password = Base64.decode64(ENV['IOS_CERTIFICATE_PASSWORD_BASE64']).force_encoding('UTF-8')
-    end
-
+    cert_password    = ENV['IOS_CERTIFICATE_PASSWORD']
     profile_path     = options[:profile_path]
     bundle_id        = options[:bundle_id]
     scheme_name      = options[:scheme_name]
@@ -71,6 +64,14 @@ platform :ios do
         keychain_name: keychain_name,
         keychain_password: keychain_password
       )
+
+      # Debug: Print the imported identities to diagnose if the certificate + private key are valid
+      UI.message "🔍 Debugging imported code signing identities..."
+      begin
+        sh("security find-identity -v -p codesigning")
+      rescue => e
+        UI.message "Failed to run security find-identity: #{e.message}"
+      end
 
       # 3. Install the provisioning profile
       install_provisioning_profile(path: profile_path)

@@ -97,8 +97,6 @@ async function run() {
       fs.appendFileSync(process.env.GITHUB_ENV, `IOS_CERTIFICATE_PATH=${certPath}\n`);
       fs.appendFileSync(process.env.GITHUB_ENV, `IOS_PROVISIONING_PROFILE_PATH=${profilePath}\n`);
       fs.appendFileSync(process.env.GITHUB_ENV, `IOS_CERTIFICATE_PASSWORD=${certificatePassword}\n`);
-      const base64Password = Buffer.from(certificatePassword || '').toString('base64');
-      fs.appendFileSync(process.env.GITHUB_ENV, `IOS_CERTIFICATE_PASSWORD_BASE64=${base64Password}\n`);
       fs.appendFileSync(process.env.GITHUB_ENV, `IOS_BUNDLE_ID=${bundleId}\n`);
       fs.appendFileSync(process.env.GITHUB_ENV, `IOS_DISTRIBUTION_METHOD=${distributionType}\n`);
       fs.appendFileSync(process.env.GITHUB_ENV, `IOS_TRACK=${iosTrack}\n`);
