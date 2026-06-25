@@ -162,7 +162,7 @@ platform :android do
     changelog_text = ENV['APP_BUILD_CHANGELOG']
     if changelog_text && !changelog_text.strip.empty?
       UI.message "📝 Writing Android changelog to metadata files..."
-      ['en-US', 'en-GB'].each do |locale|
+      ['en-US'].each do |locale|
         path = "metadata/android/#{locale}/changelogs"
         FileUtils.mkdir_p(path)
         File.write("#{path}/default.txt", changelog_text)
