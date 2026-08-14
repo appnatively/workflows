@@ -90,7 +90,16 @@ async function run() {
   if (foregroundExists && backgroundExists && monochromeExists) {
     log.success("All adaptive icon assets exist. Injecting adaptive icon config into app.config.ts...");
     
-    let adaptiveBgColor = config.adaptive_icon_background_color || "#E6F4FE";
+    // android.adaptiveIcon.backgroundColor only accepts a plain 6-digit hex string (Expo core
+    // config, not a plugin) — no rgba()/hsla()/named colors, no alpha. Studio's color picker
+    // disables alpha for this field, but this guard also protects against any already-saved
+    // non-hex value (e.g. from before that fix shipped) breaking aapt resource compilation.
+    const HEX_COLOR_ONLY_RE = /^#[0-9a-fA-F]{6}$/;
+    const rawAdaptiveBgColor = config.adaptive_icon_background_color;
+    let adaptiveBgColor = HEX_COLOR_ONLY_RE.test(rawAdaptiveBgColor) ? rawAdaptiveBgColor : "#E6F4FE";
+    if (rawAdaptiveBgColor && adaptiveBgColor !== rawAdaptiveBgColor) {
+      log.warn(`adaptive_icon_background_color ("${rawAdaptiveBgColor}") is not a valid 6-digit hex color. Falling back to ${adaptiveBgColor}.`);
+    }
 
     const appConfigPath = path.resolve('app.config.ts');
     if (fs.existsSync(appConfigPath)) {
