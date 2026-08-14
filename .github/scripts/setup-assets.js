@@ -41,8 +41,9 @@ async function run() {
   // 0. Fetch and minify default-app-config.json from AppNatively API
   const apiUrl = config.expo_public_api_url;
   const appId = config.expo_public_app_id;
+  const schemaVersion = config.expo_public_schema_version || '1';
   if (apiUrl && appId) {
-    const configUrl = `${apiUrl}/${appId}/config`;
+    const configUrl = `${apiUrl}/${appId}/config?schemaVersion=${schemaVersion}`;
     log.info(`Fetching default app layout configuration from ${configUrl}...`);
     try {
       const layoutData = await request(configUrl);
