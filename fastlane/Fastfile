@@ -112,7 +112,8 @@ platform :ios do
             ipa: "./build/#{scheme_name}.ipa",
             skip_metadata: true,
             skip_screenshots: true,
-            submit_for_review: false
+            submit_for_review: false,
+            run_precheck_before_submit: false
           )
         elsif ios_track == 'testflight-external'
           UI.message "🚀 Uploading to TestFlight (External Testers)..."
