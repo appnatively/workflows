@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const { loadAppConfig, downloadFile, request, log, fail } = require('./utils');
+const { execSync } = require('child_process');
+const { loadAppConfig, request, log, fail } = require('./utils');
 
-log.info("Downloading app assets from Google Drive...");
+log.info("Downloading app assets...");
 
 // Ensure required environment variables
 if (!process.env.BUILD_ID) {
@@ -12,27 +13,83 @@ if (!process.env.BUILD_ID) {
 // Locate app_config.json
 const { config } = loadAppConfig();
 
-const accessToken = config.google_drive_access_token;
-if (!accessToken) {
-  fail("google_drive_access_token not found in configuration.");
+// Assets are dispatched by the backend as absolute download URLs under `asset_*_url`
+// keys (see GithubController.getConfig). The `/studio/app/{id}/files/{id}` route is
+// public (no auth), resolves R2-or-Drive per file record, and returns the raw stored
+// bytes — WebP in the common case, occasionally already PNG. No Google Drive token or
+// provider branching is needed here anymore.
+
+/**
+ * Converts an image to PNG, trying the converters preinstalled on GitHub-hosted
+ * ubuntu/macOS runners in turn (ImageMagick v7 `magick`, v6 `convert`, libwebp `dwebp`).
+ * Returns true on the first one that produces a non-empty file.
+ */
+function convertToPng(src, dest) {
+  const candidates = [
+    { bin: 'magick', cmd: (s, d) => `magick "${s}" "${d}"` },
+    { bin: 'convert', cmd: (s, d) => `convert "${s}" "${d}"` },
+    { bin: 'dwebp', cmd: (s, d) => `dwebp "${s}" -o "${d}"` },
+  ];
+  for (const c of candidates) {
+    try {
+      execSync(c.cmd(src, dest), { stdio: 'inherit' });
+      if (fs.existsSync(dest) && fs.statSync(dest).size > 0) {
+        return true;
+      }
+    } catch (_) {
+      // Converter missing or failed — try the next one.
+    }
+  }
+  return false;
+}
+
+function isPng(buf) {
+  return (
+    buf.length >= 8 &&
+    buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47
+  );
 }
 
 // Download Helper
 async function downloadAsset(key, dest) {
-  const fileId = config[key];
-  if (!fileId || fileId === 'null') {
+  const url = config[key];
+  if (!url || url === 'null') {
     log.warn(`${key} not found or invalid in configuration.`);
     return false;
   }
 
-  log.info(`Downloading ${key} (${fileId}) to ${dest}...`);
+  log.info(`Downloading ${key} (${url}) to ${dest}...`);
   try {
-    const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
-    await downloadFile(url, dest, `Bearer ${accessToken}`, true);
-    log.success(`Successfully downloaded ${key}`);
+    const buffer = await request(url, { isBinary: true });
+    if (!buffer || buffer.length === 0) {
+      log.warn(`${key} download returned an empty body.`);
+      return false;
+    }
+
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+
+    // Native builds need PNG. Skip conversion when the backend already stored a PNG.
+    if (isPng(buffer)) {
+      fs.writeFileSync(dest, buffer);
+      log.success(`Successfully downloaded ${key} (already PNG)`);
+      return true;
+    }
+
+    const tmp = `${dest}.download`;
+    fs.writeFileSync(tmp, buffer);
+    try {
+      if (!convertToPng(tmp, dest)) {
+        log.warn(`Failed to convert ${key} to PNG (no working converter on runner).`);
+        return false;
+      }
+    } finally {
+      if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+    }
+
+    log.success(`Successfully downloaded and converted ${key}`);
     return true;
   } catch (err) {
-    log.warn(`Error downloading ${key} (ID: ${fileId}): ${err.message}`);
+    log.warn(`Error downloading ${key} (${url}): ${err.message}`);
     return false;
   }
 }
@@ -60,13 +117,13 @@ async function run() {
   }
 
   // 1. Download App Icon
-  const iconSuccess = await downloadAsset("asset_icon_id", "assets/images/icon.png");
+  const iconSuccess = await downloadAsset("asset_icon_url", "assets/images/icon.png");
   if (!iconSuccess) {
-    fail("Failed to download App Icon (asset_icon_id). Stopping workflow.");
+    fail("Failed to download App Icon (asset_icon_url). Stopping workflow.");
   }
 
   // 2. Download Splash Icon (with fallback to App Icon if missing or failed)
-  const splashSuccess = await downloadAsset("asset_splash_id", "assets/images/splash-icon.png");
+  const splashSuccess = await downloadAsset("asset_splash_url", "assets/images/splash-icon.png");
   if (!splashSuccess) {
     if (fs.existsSync("assets/images/icon.png")) {
       log.info("Falling back to assets/images/icon.png for splash-icon.png...");
@@ -78,9 +135,9 @@ async function run() {
   }
 
   // 3. Download Android Adaptive Icons (Optional)
-  await downloadAsset("asset_adaptive_foreground_id", "assets/images/android-icon-foreground.png");
-  await downloadAsset("asset_adaptive_background_id", "assets/images/android-icon-background.png");
-  await downloadAsset("asset_adaptive_monochrome_id", "assets/images/android-icon-monochrome.png");
+  await downloadAsset("asset_adaptive_foreground_url", "assets/images/android-icon-foreground.png");
+  await downloadAsset("asset_adaptive_background_url", "assets/images/android-icon-background.png");
+  await downloadAsset("asset_adaptive_monochrome_url", "assets/images/android-icon-monochrome.png");
 
   // 4. Inject Android Adaptive Icon config to app.config.ts if all files exist
   const foregroundExists = fs.existsSync("assets/images/android-icon-foreground.png");
@@ -89,7 +146,7 @@ async function run() {
 
   if (foregroundExists && backgroundExists && monochromeExists) {
     log.success("All adaptive icon assets exist. Injecting adaptive icon config into app.config.ts...");
-    
+
     // android.adaptiveIcon.backgroundColor only accepts a plain 6-digit hex string (Expo core
     // config, not a plugin) — no rgba()/hsla()/named colors, no alpha. Studio's color picker
     // disables alpha for this field, but this guard also protects against any already-saved
