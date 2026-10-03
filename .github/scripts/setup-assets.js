@@ -99,8 +99,10 @@ async function run() {
   const apiUrl = config.expo_public_api_url;
   const appId = config.expo_public_app_id;
   const schemaVersion = config.expo_public_schema_version || '1';
+  // Tells the server this build's JS can run a Custom API connector (it refuses `custom` otherwise).
+  const connectorLevel = config.expo_public_connector_level || '0';
   if (apiUrl && appId) {
-    const configUrl = `${apiUrl}/${appId}/config?schemaVersion=${schemaVersion}`;
+    const configUrl = `${apiUrl}/${appId}/config?schemaVersion=${schemaVersion}&connector=${connectorLevel}`;
     log.info(`Fetching default app layout configuration from ${configUrl}...`);
     try {
       const layoutData = await request(configUrl);
