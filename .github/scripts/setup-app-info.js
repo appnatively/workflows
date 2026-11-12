@@ -39,15 +39,31 @@ if (fs.existsSync(appConfigPath) && fs.lstatSync(appConfigPath).isFile()) {
   log.info("Updating app.config.ts with clean regex replacements...");
   
   let content = fs.readFileSync(appConfigPath, 'utf8');
+
+  // Release templates use both quote styles. Require one standalone literal so a
+  // template change cannot silently leave the default Android package in place.
+  const packagePattern = /(^[\t ]*package\s*:\s*)(['"])([^'"\r\n]*)\2(?=\s*(?:[,}]|$))/gm;
+  const packageMatches = [...content.matchAll(packagePattern)];
+  if (packageMatches.length !== 1) {
+    fail(`Expected exactly one quoted Android package assignment in ${appConfigPath}; found ${packageMatches.length}.`);
+  }
   
   content = content.replace(/name:\s*"[^"]*"/g, `name: "${variables.APP_NAME}"`);
   content = content.replace(/slug:\s*"[^"]*"/g, `slug: "${variables.SLUG}"`);
   content = content.replace(/version:\s*"[^"]*"/g, `version: "${variables.APP_VERSION}"`);
   content = content.replace(/bundleIdentifier:\s*"[^"]*"/g, `bundleIdentifier: "${variables.PACKAGE_ID}"`);
-  content = content.replace(/package:\s*"[^"]*"/g, `package: "${variables.PACKAGE_ID}"`);
+  content = content.replace(packagePattern, (_, prefix, quote) => `${prefix}${quote}${variables.PACKAGE_ID}${quote}`);
   content = content.replace(/scheme:\s*"[^"]*"/g, `scheme: "${variables.SLUG}"`);
+
+  const appliedPackages = [...content.matchAll(packagePattern)];
+  if (appliedPackages.length !== 1 || appliedPackages[0][3] !== variables.PACKAGE_ID) {
+    fail(`Failed to apply Android package ID '${variables.PACKAGE_ID}' in ${appConfigPath}.`);
+  }
   
   fs.writeFileSync(appConfigPath, content, 'utf8');
+  log.success(`Applied Android Package ID: ${variables.PACKAGE_ID}`);
+} else {
+  fail(`Required Expo configuration file '${appConfigPath}' is missing or is not a file.`);
 }
 
 // --- 3. Update app.manifest for Android and iOS ---
