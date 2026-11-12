@@ -105,14 +105,17 @@ async function run() {
     const configUrl = layoutUrl.href;
     log.info(`Fetching default app layout configuration from ${configUrl}...`);
     try {
-      const layoutData = await request(configUrl);
+      const layoutData = await request(configUrl, { includeErrorDetails: true });
       const parsedLayout = JSON.parse(layoutData);
       const destPath = 'src/assets/default-app-config.json';
       fs.mkdirSync(path.dirname(destPath), { recursive: true });
       fs.writeFileSync(destPath, JSON.stringify(parsedLayout), 'utf8');
       log.success("Successfully downloaded and minified default-app-config.json to src/assets/");
     } catch (err) {
-      fail(`Failed to fetch default-app-config.json: ${err.message}`);
+      const recovery = err.statusCode === 409
+        ? ' Open this app in Studio, review the current layout and click Publish, then rerun the build.'
+        : '';
+      fail(`Failed to fetch default-app-config.json: ${err.message}${recovery}`);
     }
   } else {
     log.warn("expo_public_api_url or expo_public_app_id missing in config. Skipping fetching default-app-config.json");

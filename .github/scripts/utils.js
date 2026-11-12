@@ -66,6 +66,7 @@ function loadAppConfig(defaultFilename = 'app_config.json') {
 /**
  * Performs a GET/POST request with automated redirect following.
  * Supports binary and text responses.
+ * Opt in to includeErrorDetails only for public endpoints whose JSON errors are safe to log.
  */
 function request(urlStr, options = {}) {
   const maxRedirects = 5;
@@ -92,7 +93,38 @@ function request(urlStr, options = {}) {
         }
 
         if (res.statusCode < 200 || res.statusCode >= 300) {
-          return reject(new Error(`Server returned status ${res.statusCode} for ${targetUrl}`));
+          const error = new Error(`Server returned status ${res.statusCode} for ${targetUrl}`);
+          error.statusCode = res.statusCode;
+          if (!options.includeErrorDetails) {
+            res.resume();
+            return reject(error);
+          }
+
+          // Keep public API diagnostics bounded; never dump HTML or an arbitrary response body.
+          const chunks = [];
+          let bytes = 0;
+          const maxErrorBytes = 8192;
+          res.on('data', chunk => {
+            bytes += chunk.length;
+            if (bytes <= maxErrorBytes) chunks.push(chunk);
+          });
+          res.on('end', () => {
+            if (bytes <= maxErrorBytes) {
+              try {
+                const payload = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+                if (typeof payload?.error === 'string') {
+                  const detail = payload.error.replace(/[\x00-\x1f\x7f-\x9f]/g, ' ').slice(0, 500);
+                  if (detail) error.message += `: ${detail}`;
+                }
+              } catch (_) {
+                // Non-JSON errors retain the HTTP status without exposing the body.
+              }
+            }
+            reject(error);
+          });
+          res.on('error', () => reject(error));
+          res.on('aborted', () => reject(error));
+          return;
         }
 
         // If downloading straight to file stream

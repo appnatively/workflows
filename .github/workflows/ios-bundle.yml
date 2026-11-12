@@ -92,7 +92,7 @@ jobs:
           API_URL: ${{ inputs.api_url }}
           BUILD_ACCESS_TOKEN: ${{ secrets.BUILD_ACCESS_TOKEN }}
         run: |
-          echo "⬇️ Downloading app assets from Google Drive..."
+          echo "⬇️ Downloading app configuration and assets..."
           node ../scripts/setup-assets.js
 
           echo "⚡ Compiling main.jsbundle to Hermes Bytecode..."
